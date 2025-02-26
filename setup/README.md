@@ -21,10 +21,7 @@ As a proof of concept/hardware test for our project, we can use some readily ava
       ```
       (byai)$ sudo apt install python3-dbus
       ```
-   2. Save the `speaker-agent.py` file into your home directory:
-      ```
-      (byai)$ wget -P ~/ 
-      ```
+   2. Save the [`speaker-agent.py`](setup/speaker-agent.py) file into your user's home directory on the BYAI.
    3. Start the speaker agent:
       ```
       (byai)$ python ~/speaker-agent.py
