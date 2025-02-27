@@ -38,7 +38,7 @@ Now, unless you have an HMDI monitor with speakers attached to the board, you of
 ### Getting Sound Output for Testing Purposes
 To hear sound from our BYAI Bluetooth Speaker, we of course need to hook up an audio output device. The speaker jack on the zenhat doesn't come configured out of the box, and the process to get it working is quite involved. So as a first step to testing the bluetooth audio setup, we can try some other audio output methods.
 
-One way to get sound out of the BYAI, though a bit nonsensical in the context of our project, is to connect it to an actual bluetooth speaker, or a pair of bluetooth headphones/earbuds. The following explains how to manually connect your BYAI to a bluetooth speaker/headphones from the terminal:
+Although it may be a bit nonsensical in the context of our project, one way to get sound output out of the BYAI is to connect it to an actual bluetooth speaker, or a pair of bluetooth headphones/earbuds. The following explains how to manually connect your BYAI to a bluetooth speaker/headphones from the terminal:
 1. On the BYAI, run the bluetoothctl program:
    ```
    (byai)$ bluetoothctl
@@ -71,7 +71,7 @@ One way to get sound out of the BYAI, though a bit nonsensical in the context of
    [bluetooth]# connect <Address>
    ```
    You can use tab completion when typing the address
-6. Now, you should have your phone/laptop connected to the BYAI, and the BYAI connected to the bluetooth speaker/headphones. With this setup, your BYAI will essentially be acting as a bridge between the phone/laptop and speaker/headphones. Exit the `bluetoothctl` program with
+6. Now, you should have your phone/laptop connected to the BYAI, and the BYAI connected to the bluetooth speaker/headphones. With this setup, your BYAI will essentially be acting as a bluetooth bridge between the phone/laptop and speaker/headphones. Exit the `bluetoothctl` program with
    ```
    [bluetooth]# exit
    ```
