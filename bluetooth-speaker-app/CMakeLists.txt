@@ -27,3 +27,13 @@ add_subdirectory(lcd)
 add_subdirectory(hal)  
 add_subdirectory(app)
 add_subdirectory(test)
+
+# copy over the assets folder to ~/cmpt433/public/433-project/
+set(ASSETS_SOURCE_DIR "${CMAKE_SOURCE_DIR}/assets")
+set(ASSETS_DEST_DIR "~/cmpt433/public/433-project/assets")
+
+add_custom_target(copy_assets ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+            ${ASSETS_SOURCE_DIR} ${ASSETS_DEST_DIR}
+    COMMENT "Copying assets to output directory"
+)
