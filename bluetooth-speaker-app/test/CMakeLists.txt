@@ -1,1 +1,2 @@
 add_subdirectory(rotary_encoder)
+add_subdirectory(lcd)

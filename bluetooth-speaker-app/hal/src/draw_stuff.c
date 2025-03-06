@@ -38,6 +38,7 @@ void draw_stuff_init()
 	LCD_1IN54_Clear(WHITE);
 	LCD_SetBacklight(1023);
 
+
     UDOUBLE Imagesize = LCD_1IN54_HEIGHT*LCD_1IN54_WIDTH*2;
     if((s_fb = (UWORD *)malloc(Imagesize)) == NULL) {
         perror("Failed to apply for black memory");
@@ -114,9 +115,37 @@ void draw_stuff_update_screen(char* msg)
     //           Assume font height <= 20
     // LCD_1IN54_DisplayWindows(x, y, LCD_1IN54_WIDTH, y+20, s_fb);
     LCD_1IN54_DisplayWindows(x, y, LCD_1IN54_WIDTH, y + LCD_HEIGHT, s_fb);
+}
 
 
-    #if 0
+void draw_stuff_update_screen2(void)
+{
+    assert(isInitialized);
+
+    const int x = 0;
+    const int y = 0;
+
+
+    // Initialize the RAM frame buffer to be blank (white)
+    Paint_NewImage(s_fb, LCD_1IN54_WIDTH, LCD_1IN54_HEIGHT, 0, WHITE, 16);
+    Paint_Clear(WHITE);
+
+    // Draw into the RAM frame buffer
+    // WARNING: Don't print strings with `\n`; will crash!
+    // Paint_DrawString_EN(x, y, msg, &Font16, WHITE, BLACK);
+    // Paint_DrawString_EN(x, y, buf, &Font16, WHITE, BLACK);
+    // free(buf);
+
+    // Send the RAM frame buffer to the LCD (actually display it)
+    // Option 1) Full screen refresh (~1 update / second)
+    // LCD_1IN54_Display(s_fb);
+    // Option 2) Update just a small window (~15 updates / second)
+    //           Assume font height <= 20
+    // LCD_1IN54_DisplayWindows(x, y, LCD_1IN54_WIDTH, y+20, s_fb);
+    LCD_1IN54_DisplayWindows(x, y, LCD_1IN54_WIDTH, y + LCD_HEIGHT, s_fb);
+
+
+    // #if 0
     // Some other things you can do!
 
     // /*1.Create a new image cache named IMAGE_RGB and fill it with white*/
@@ -163,5 +192,11 @@ void draw_stuff_update_screen(char* msg)
 	GUI_ReadBmp("./pic/LCD_1inch54.bmp");    
     LCD_1IN54_Display(s_fb);
     DEV_Delay_ms(2000);
-    #endif
+    // #endif
 }
+
+/*
+Notes:
+everything ultimately seems to be drawn by Paint_SetPixel
+Using some library to draw to a buffer is probably the most straight forward
+*/

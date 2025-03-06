@@ -9,8 +9,7 @@ project(light_sampler
 # Compiler options (inherited by sub-folders)
 set(CMAKE_C_STANDARD 11)
 add_definitions(-D_POSIX_C_SOURCE=200809L)
-# add_compile_options(-Wall  -Wpedantic -Wextra -g) # -Werror
-add_compile_options(-Wall -Wpedantic -Wextra -Werror -O3)
+add_compile_options(-Wall -Wpedantic -Wextra -Werror -g)
 add_compile_options(-fdiagnostics-color)
 
 # Enable address sanitizer
