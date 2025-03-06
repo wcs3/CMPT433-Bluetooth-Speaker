@@ -2,44 +2,8 @@
 
 This is a working project that you can use as the basis for your assignments and includes LCD support.
 
-## Steps to Add LCD to an Existing Project
-
-1. Load the SPI Overlay on the board (just do once)
-  a. Edit config file:
-     `(byai)$ sudo nano /boot/firmware/extlinux/extlinux.conf`
-  b. Edit the last section to make it say:  
-     ```
-      label microSD (default)
-          kernel /Image
-          append console=ttyS2,115200n8 root=/dev/mmcblk1p3 ro rootfstype=ext4 resume=/dev/mmcblk1p2 rootwait net.ifnames=0 quiet
-          fdtdir /
-          fdt /ti/k3-am67a-beagley-ai.dtb
-          fdtoverlays /overlays/k3-am67a-beagley-ai-spidev0.dtbo
-          initrd /initrd.img
-     ```
-     (If you are also enabling PWM, make the `fdtoverlays` line be a space-separated list of .dtbo files.)
-  c. Reboot.   
-  d. You should now have two files: `/dev/spidev0.0` and `/dev/spidev0.1`.  
-2. Copy `lcd/` and `lgpio/` folders into project.
-3. In root `CMakeLists.txt`, add:  
-  ```
-  add_subdirectory(lgpio)
-  add_subdirectory(lcd)
-  ```
-4. Into your `app/CMakeLists.txt`, add:  
-  ```
-  target_link_libraries(hello_world LINK_PRIVATE lcd)
-  target_link_libraries(hello_world LINK_PRIVATE lgpio)
-  ```
-  (Changing `hello_world` to your project's name)
-5. Create a module to interact with the screen (base on `draw_stuff.h/.c`, but name it better!)  
-6. Add calls to init and cleanup to your main().
-7. Trigger a CMake rebuild so it will compile your new files.
-
 
 ## Running on Target
-
-**NEW FOR LCD PROJECT**
 
 * Install the lgpio library on the target
   `(byai)$ sudo apt install liblgpio-dev`
@@ -47,9 +11,6 @@ This is a working project that you can use as the basis for your assignments and
   a. Change the SPI to be usable by anyone:
      `sudo chmod a+rw /dev/spidev0.*`
   b. Run the program with root access.
-
-
-
 
 ## Sturcture
 
@@ -59,6 +20,7 @@ This is a working project that you can use as the basis for your assignments and
 - `lcd/`:   Library for LCD use from https://www.waveshare.com/
 - `lgpio/`: Library used by LCD code, from https://github.com/joan2937/lg/archive/master.zip
             (No need to install the library on the host)
+- `test/`: Executables for testing modules
 
 ```
   .
