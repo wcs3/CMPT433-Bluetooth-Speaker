@@ -8,6 +8,7 @@ add_executable(433-bluetooth-speaker ${MY_SOURCES})
 target_link_libraries(433-bluetooth-speaker LINK_PRIVATE hal)
 target_link_libraries(433-bluetooth-speaker LINK_PRIVATE lcd)
 target_link_libraries(433-bluetooth-speaker LINK_PRIVATE lgpio)
+target_link_libraries(433-bluetooth-speaker LINK_PRIVATE Binc)
 
 # Copy executable to final location (change `hello_world` to project name as needed)
 add_custom_command(TARGET 433-bluetooth-speaker POST_BUILD 
