@@ -1,10 +1,11 @@
-#include <microphone.h>
+#include "hal/microphone.h"
 
 #include <assert.h>
 #include <pthread.h>
 #include <string.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <unistd.h>
 
 #define MAX_INPUT 2048
 
