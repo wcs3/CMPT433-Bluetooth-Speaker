@@ -1,4 +1,4 @@
-#include "bt_agent.h"
+#include "app/bt_agent.h"
 
 #include <pthread.h>
 #include <stdbool.h>
@@ -25,15 +25,16 @@ void bt_agent_init()
 
 void bt_agent_cleanup()
 {
+
     stop_agent = true;
     pthread_join(thread_id, NULL);
 }
+
 
 void *agent_task(void *arg)
 {
     (void)arg;
 
-    while (!stop_agent)
-    {
-    }
+
+    return NULL;
 }

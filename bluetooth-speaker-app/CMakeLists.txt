@@ -24,6 +24,7 @@ add_link_options(-pthread)
 # What folders to build
 add_subdirectory(lgpio)
 add_subdirectory(lcd)
+add_subdirectory(binc)
 add_subdirectory(hal)  
 add_subdirectory(app)
 add_subdirectory(test)

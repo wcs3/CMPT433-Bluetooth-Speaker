@@ -29,4 +29,4 @@ set_property(TARGET lgpio PROPERTY COMPILE_OPTIONS ${target_options})
 target_include_directories(lgpio PUBLIC .)
 include_directories(lgpio)
 
-add_compile_options(-D_BSD_SOURCE)
+add_definitions(-D_DEFAULT_SOURCE)
