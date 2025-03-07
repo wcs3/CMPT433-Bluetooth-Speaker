@@ -6,7 +6,7 @@
 int main() 
 {
     image_loader_init();
-    image_loader_image* img =  image_loader_load("./assets/img/test-red.bmp");
+    image_loader_image* img =  image_loader_load("./assets/img/tux.png");
     draw_stuff_init();
     // draw_stuff_update_screen("hello world\nhello world\n");
     draw_stuff_image(img, 0, 0);

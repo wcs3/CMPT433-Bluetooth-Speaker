@@ -197,12 +197,10 @@ void draw_stuff_update_screen2(void)
 
 uint16_t to_16_bit_colour(image_loader_rgba colour)
 {
-    // red is   1111 1000 0000 0000
-    // green is 0000 0111 1110 0000
-    // blue is  0000 0000 0001 1111
-    uint16_t r = (colour.r / 16) << 11;
-    uint16_t g = (colour.g / 8) << 5;
-    uint16_t b = colour.b / 16;
+    // rrrr rggg gggb bbbb
+    uint16_t r = (colour.r / 8) << 11;
+    uint16_t g = (colour.g / 4) << 5;
+    uint16_t b = colour.b / 8;
     return r | g | b;
 }
 
@@ -211,14 +209,12 @@ void draw_stuff_image(image_loader_image* img, int x, int y)
 
     // /*1.Create a new image cache named IMAGE_RGB and fill it with white*/
     Paint_NewImage(s_fb, LCD_1IN54_WIDTH, LCD_1IN54_HEIGHT, 0, WHITE, 16);
-    printf("%d %d %d %d\n", img->x, img->y, x, y);
 
     Paint_Clear(WHITE);
     int img_i = 0;
     for(int y_draw = y; y_draw < y + img->y; y_draw++) {
         for(int x_draw = x; x_draw < x + img->x; x_draw++) {
             if(x_draw >= 0 && x_draw < LCD_1IN54_WIDTH && y_draw >= 0 && y_draw < LCD_1IN54_HEIGHT) {
-
                 Paint_SetPixel(x_draw, y_draw, to_16_bit_colour(img->pixels[img_i]));
             }
             img_i++;
