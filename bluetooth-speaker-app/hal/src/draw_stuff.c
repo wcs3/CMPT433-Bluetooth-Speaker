@@ -152,47 +152,80 @@ void draw_stuff_update_screen2(void)
     Paint_NewImage(s_fb, LCD_1IN54_WIDTH, LCD_1IN54_HEIGHT, 0, WHITE, 16);
     printf("Paint_Clear(WHITE)\n");
     Paint_Clear(WHITE);
-    DEV_Delay_ms(2000);
+    // DEV_Delay_ms(2000);
 
-	// Paint_SetRotate(ROTATE_90);
-    // Paint_SetRotate(ROTATE_180);
-    // Paint_SetRotate(ROTATE_270);
+	// // Paint_SetRotate(ROTATE_90);
+    // // Paint_SetRotate(ROTATE_180);
+    // // Paint_SetRotate(ROTATE_270);
 
-    // /* GUI */
-    printf("drawing...\r\n");
-    // /*2.Drawing on the image*/
-    Paint_DrawPoint(5, 10, BLACK, DOT_PIXEL_1X1, DOT_STYLE_DFT);//240 240
-    Paint_DrawPoint(5, 25, BLACK, DOT_PIXEL_2X2, DOT_STYLE_DFT);
-    Paint_DrawPoint(5, 40, BLACK, DOT_PIXEL_3X3, DOT_STYLE_DFT);
-    Paint_DrawPoint(5, 55, BLACK, DOT_PIXEL_4X4, DOT_STYLE_DFT);
+    // // /* GUI */
+    // printf("drawing...\r\n");
+    // // /*2.Drawing on the image*/
+    // Paint_DrawPoint(5, 10, BLACK, DOT_PIXEL_1X1, DOT_STYLE_DFT);//240 240
+    // Paint_DrawPoint(5, 25, BLACK, DOT_PIXEL_2X2, DOT_STYLE_DFT);
+    // Paint_DrawPoint(5, 40, BLACK, DOT_PIXEL_3X3, DOT_STYLE_DFT);
+    // Paint_DrawPoint(5, 55, BLACK, DOT_PIXEL_4X4, DOT_STYLE_DFT);
 
-    Paint_DrawLine(20, 10, 70, 60, RED, DOT_PIXEL_1X1, LINE_STYLE_SOLID);
-    Paint_DrawLine(70, 10, 20, 60, RED, DOT_PIXEL_1X1, LINE_STYLE_SOLID);
-    Paint_DrawLine(170, 15, 170, 55, RED, DOT_PIXEL_1X1, LINE_STYLE_DOTTED);
-    Paint_DrawLine(150, 35, 190, 35, RED, DOT_PIXEL_1X1, LINE_STYLE_DOTTED);
+    // Paint_DrawLine(20, 10, 70, 60, RED, DOT_PIXEL_1X1, LINE_STYLE_SOLID);
+    // Paint_DrawLine(70, 10, 20, 60, RED, DOT_PIXEL_1X1, LINE_STYLE_SOLID);
+    // Paint_DrawLine(170, 15, 170, 55, RED, DOT_PIXEL_1X1, LINE_STYLE_DOTTED);
+    // Paint_DrawLine(150, 35, 190, 35, RED, DOT_PIXEL_1X1, LINE_STYLE_DOTTED);
 
-    Paint_DrawRectangle(20, 10, 70, 60, BLUE, DOT_PIXEL_1X1, DRAW_FILL_EMPTY);
-    Paint_DrawRectangle(85, 10, 130, 60, BLUE, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+    // Paint_DrawRectangle(20, 10, 70, 60, BLUE, DOT_PIXEL_1X1, DRAW_FILL_EMPTY);
+    // Paint_DrawRectangle(85, 10, 130, 60, BLUE, DOT_PIXEL_1X1, DRAW_FILL_FULL);
 
-    Paint_DrawCircle(170, 35, 20, GREEN, DOT_PIXEL_1X1, DRAW_FILL_EMPTY);
-    Paint_DrawCircle(170, 85, 20, GREEN, DOT_PIXEL_1X1, DRAW_FILL_FULL);
+    // Paint_DrawCircle(170, 35, 20, GREEN, DOT_PIXEL_1X1, DRAW_FILL_EMPTY);
+    // Paint_DrawCircle(170, 85, 20, GREEN, DOT_PIXEL_1X1, DRAW_FILL_FULL);
 
-    Paint_DrawString_EN(5, 70, "hello world", &Font16, WHITE, BLACK);
-    Paint_DrawString_EN(5, 90, "waveshare", &Font20, RED, IMAGE_BACKGROUND);
+    // Paint_DrawString_EN(5, 70, "hello world", &Font16, WHITE, BLACK);
+    // Paint_DrawString_EN(5, 90, "waveshare", &Font20, RED, IMAGE_BACKGROUND);
 
-    Paint_DrawNum(5, 160, 123456789, &Font20, GREEN, IMAGE_BACKGROUND);
-	Paint_DrawString_CN(5,200, "΢ѩ����",  &Font24CN,IMAGE_BACKGROUND,BLUE);   
+    // Paint_DrawNum(5, 160, 123456789, &Font20, GREEN, IMAGE_BACKGROUND);
+	// Paint_DrawString_CN(5,200, "΢ѩ����",  &Font24CN,IMAGE_BACKGROUND,BLUE);   
     
-    // /*3.Refresh the picture in RAM to LCD*/
-    LCD_1IN54_Display(s_fb);
-	DEV_Delay_ms(2000);
+    // // /*3.Refresh the picture in RAM to LCD*/
+    // LCD_1IN54_Display(s_fb);
+	// DEV_Delay_ms(2000);
 
     // /* show bmp */
-	printf("show bmp\r\n");	
-	GUI_ReadBmp("./pic/LCD_1inch54.bmp");    
-    LCD_1IN54_Display(s_fb);
-    DEV_Delay_ms(2000);
+	// printf("show bmp\r\n");	
+	// GUI_ReadBmp("./assets/img/test-red.bmp");    
+    // LCD_1IN54_Display(s_fb);
+    // DEV_Delay_ms(2000);
     // #endif
+}
+
+uint16_t to_16_bit_colour(image_loader_rgba colour)
+{
+    // red is   1111 1000 0000 0000
+    // green is 0000 0111 1110 0000
+    // blue is  0000 0000 0001 1111
+    uint16_t r = (colour.r / 16) << 11;
+    uint16_t g = (colour.g / 8) << 5;
+    uint16_t b = colour.b / 16;
+    return r | g | b;
+}
+
+void draw_stuff_image(image_loader_image* img, int x, int y)
+{
+
+    // /*1.Create a new image cache named IMAGE_RGB and fill it with white*/
+    Paint_NewImage(s_fb, LCD_1IN54_WIDTH, LCD_1IN54_HEIGHT, 0, WHITE, 16);
+    printf("%d %d %d %d\n", img->x, img->y, x, y);
+
+    Paint_Clear(WHITE);
+    int img_i = 0;
+    for(int y_draw = y; y_draw < y + img->y; y_draw++) {
+        for(int x_draw = x; x_draw < x + img->x; x_draw++) {
+            if(x_draw >= 0 && x_draw < LCD_1IN54_WIDTH && y_draw >= 0 && y_draw < LCD_1IN54_HEIGHT) {
+
+                Paint_SetPixel(x_draw, y_draw, to_16_bit_colour(img->pixels[img_i]));
+            }
+            img_i++;
+        }     
+    }
+        
+    LCD_1IN54_Display(s_fb);
 }
 
 /*
