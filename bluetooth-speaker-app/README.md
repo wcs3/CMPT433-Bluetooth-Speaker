@@ -5,14 +5,14 @@ This is a working project that you can use as the basis for your assignments and
 
 ## Running on Target
 
-* Install the lgpio library on the target
-  `(byai)$ sudo apt install liblgpio-dev`
+* Install library dependencies on target:
+  `(byai)$ sudo apt install liblgpio-dev libglib2.0-0`
 * At each boot you'll need to either:
   a. Change the SPI to be usable by anyone:
      `sudo chmod a+rw /dev/spidev0.*`
   b. Run the program with root access.
 
-## Sturcture
+## Structure
 
 - `hal/`:   Contains all low-level hardware abstraction layer (HAL) modules
 - `app/`:   Contains all application-specific code. Broken into modules and a main file
@@ -20,35 +20,45 @@ This is a working project that you can use as the basis for your assignments and
 - `lcd/`:   Library for LCD use from https://www.waveshare.com/
 - `lgpio/`: Library used by LCD code, from https://github.com/joan2937/lg/archive/master.zip
             (No need to install the library on the host)
+- `binc/`: Bluez_inc bluetooth helper library from https://github.com/weliem/bluez_inc
 - `test/`: Executables for testing modules
 
 ```
   .
   ├── app
   │   ├── include
-  │   │   └── badmath.h
+  │   │   └── appmodule1.h
   │   ├── src
-  │   │   ├── badmath.c
+  │   │   ├── appmodule1.c
   │   │   └── main.c
   │   └── CMakeLists.txt           # Sub CMake file, just for app/
   ├── hal
   │   ├── include
   │   │   └── hal
-  │   │       └── button.h
+  │   │       └── halmodule1.h
   │   ├── src
-  │   │   └── button.c
+  │   │   └── halmodule1.c
   │   └── CMakeLists.txt           # Sub CMake file, just for hal/
   ├── lcd                          # Library for LCD access
   ├── lgpio                        # Library to support LCD
+  ├── binc                         # Bluez_inc bluetooth helper library
+  ├── test                         # Executables for testing modules
   ├── CMakeLists.txt               # Main CMake file for the project
   └── README.md
 ```  
 
-Note: This application is just to help you get started! It also has a bug in its computation (just for fun!)
-
-## Usage
-
-- Install CMake: `sudo apt update` and `sudo apt install cmake`
+## Building
+- Configure cross compiling:
+```
+sudo dpkg --add-architecture arm64
+sudo apt-get update
+sudo apt-get install build-essential crossbuild-essential-arm64 cmake`
+```
+- Install build dependencies:
+```
+sudo apt update
+sudo apt install libgpiod-dev:arm64 libglib2.0-dev:arm64
+```
 - When you first open the project, click the "Build" button in the status bar for CMake to generate the `build\` folder and recreate the makefiles.
   - When you edit and save a CMakeLists.txt file, VS Code will automatically update this folder.
 - When you add a new file (.h or .c) to the project, you'll need to rerun CMake's build
@@ -78,14 +88,6 @@ Note: This application is just to help you get started! It also has a bug in its
 - "CMake Tools" automatically suggested when you open a `CMakeLists.txt` file
 - "Output Colourizer" by IBM 
     --> Adds colour to the OUTPUT panel in VS Code; useful for seeing CMake messages
-
-## Other Suggestions
-
-- If you are trying to build with 3rd party libraries, you may want to consider the 
-  build setup suggested at the following link. Specificall, see the part on 
-  extracting the BB image to a folder, and then using chroot to run commands like
-  `apt` on that image, which allows you to get libraries for the target on the build system.
-  https://takeofftechnical.com/x-compile-cpp-bbb/
 
 ## Manually Running CMake
 
