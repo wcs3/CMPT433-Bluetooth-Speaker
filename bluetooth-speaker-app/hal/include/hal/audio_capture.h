@@ -1,10 +1,7 @@
 #ifndef _AUDIO_CAPTURE_H_
 #define _AUDIO_CAPTURE_H_
 
-#include <stdbool.h>
-#include <stddef.h>
-
-#define AUDIO_BUFFER_SIZE 4096
+#define AUDIO_BUFFER_SIZE 256
 
 /*
 Explanation of each function provided by this module:
@@ -29,13 +26,13 @@ Explanation of each function provided by this module:
 
 5. audio_capture_get_audio_buffer
     Copies the most recent audio buffer into the provided buffer &
-    returns the number of samples copied
+    NOTE: The number of written samples is equal to AUDIO_BUFFER_SIZE
 */
 
 void audio_capture_init(void);
 void audio_capture_cleanup(void);
 void audio_capture_start(void);
 void audio_capture_stop(void);
-size_t audio_capture_get_audio_buffer(short* buffer);
+void audio_capture_get_audio_buffer(short* out_buffer);
 
 #endif
