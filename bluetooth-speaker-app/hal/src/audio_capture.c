@@ -12,13 +12,15 @@
 #define SAMPLE_RATE_HZ 16000
 #define NUM_CHANNELS 1
 #define SAMPLE_SIZE (sizeof(short))
+#define BUFFER_DURATION_SEC 2
 
 // The microphone is on card 2, device 0
 #define DEVICE_NAME "plughw:2,0"
 
 // the number of frames captured from the microphone
-// by ALSA at every iteration of the thread
-#define ALSA_BUFFER_SIZE 256
+// by ALSA at every iteration of the thread (holds 2s of data)
+#define ALSA_BUFFER_SIZE (SAMPLE_RATE_HZ * BUFFER_DURATION_SEC)
+#define AUDIO_BUFFER_SIZE (SAMPLE_RATE_HZ * BUFFER_DURATION_SEC)
 
 static snd_pcm_t* audio_capture_handle;
 static pthread_t audio_capture_thread;

@@ -1,8 +1,6 @@
 #ifndef _AUDIO_CAPTURE_H_
 #define _AUDIO_CAPTURE_H_
 
-#define AUDIO_BUFFER_SIZE 256
-
 /*
 Explanation of each function provided by this module:
 1. audio_capture_init:

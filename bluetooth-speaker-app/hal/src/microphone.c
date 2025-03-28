@@ -1,4 +1,5 @@
 #include "hal/microphone.h"
+#include "hal/audio_capture.h"
 
 #include <assert.h>
 #include <pthread.h>
