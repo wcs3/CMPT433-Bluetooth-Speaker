@@ -3,9 +3,7 @@
     "configurePresets": [
         {
             "name": "aarch64-linux-gnu",
-            "displayName": "Configure preset using toolchain file",
-            "description": "Sets Ninja generator, build and install directory",
-            "generator": "Ninja",
+            "displayName": "Build aarch64 binary on non-native debian host",
             "binaryDir": "${sourceDir}/out/build/${presetName}",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
