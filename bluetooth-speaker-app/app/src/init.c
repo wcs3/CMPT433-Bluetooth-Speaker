@@ -19,25 +19,25 @@ int init_start(int num_confirms)
     int code;
     Period_init();
 
-    code = light_sensor_init();
-    if(code) {
-        fprintf(stderr, "failed to init light sensor %d\n", code);
-        return 2;
-    }
+    // code = light_sensor_init();
+    // if(code) {
+    //     fprintf(stderr, "failed to init light sensor %d\n", code);
+    //     return 2;
+    // }
 
-    code = rotary_encoder_init();
-    if(code) {
-        fprintf(stderr, "failed to init rotary encoder %d\n", code);
-        return 3;
-    }
+    // code = rotary_encoder_init();
+    // if(code) {
+    //     fprintf(stderr, "failed to init rotary encoder %d\n", code);
+    //     return 3;
+    // }
 
-    code = led_pwm_init();
-    if(code) {
-        fprintf(stderr, "failed to init pwm led %d\n", code);
-        return 4;
-    }
+    // code = led_pwm_init();
+    // if(code) {
+    //     fprintf(stderr, "failed to init pwm led %d\n", code);
+    //     return 4;
+    // }
 
-    draw_stuff_init();
+    // draw_stuff_init();
     if(num_confirms > 0) {
         code = pthread_barrier_init(&barrier, NULL, num_confirms + 1);
         if(code) {
@@ -83,11 +83,11 @@ void init_end(void)
         }
     }
     
-    draw_stuff_cleanup();
-    light_sensor_cleanup();
-    rotary_encoder_cleanup();
-    led_pwm_cleanup();
-    Period_cleanup();
+    // draw_stuff_cleanup();
+    // light_sensor_cleanup();
+    // rotary_encoder_cleanup();
+    // led_pwm_cleanup();
+    // Period_cleanup();
     if(!num_confirms_0) {
         code = pthread_barrier_destroy(&barrier);
         if(code) {

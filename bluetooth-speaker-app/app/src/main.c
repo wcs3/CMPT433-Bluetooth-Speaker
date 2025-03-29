@@ -20,8 +20,9 @@
 #include "app/init.h"
 #include "app/server.h"
 #include "app/user_interface.h"
+#include "app/bt_agent.h"
 
-static const int NUM_APP_THREADS = 2;
+static const int NUM_APP_THREADS = 0;
 
 void ctrl_c_handler(int signum __attribute__((unused))) {
     init_set_shutdown();
@@ -34,14 +35,14 @@ int main()
     }
 
     // set up signal handler to close gracefully on ctrl-c
-    struct sigaction sa;
-    sa.sa_handler = ctrl_c_handler;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-    if (sigaction(SIGINT, &sa, NULL) == -1) {
-        perror("sigaction");
-        exit(EXIT_FAILURE);
-    }
+    // struct sigaction sa;
+    // sa.sa_handler = ctrl_c_handler;
+    // sigemptyset(&sa.sa_mask);
+    // sa.sa_flags = 0;
+    // if (sigaction(SIGINT, &sa, NULL) == -1) {
+    //     perror("sigaction");
+    //     exit(EXIT_FAILURE);
+    // }
 
     // functions that start other application threads
     server_init();
