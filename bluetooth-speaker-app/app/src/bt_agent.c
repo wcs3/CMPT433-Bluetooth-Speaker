@@ -17,10 +17,6 @@
 #define A2DP_PROF_UUID "0000110d-0000-1000-8000-00805f9b34fb"
 #define AVCRP_PROF_UUID "0000110e-0000-1000-8000-00805f9b34fb"
 
-static pthread_t thread_id;
-static bool stop_agent;
-static bool initialized;
-
 GMainLoop *loop = NULL;
 Adapter *default_adapter = NULL;
 Advertisement *advertisement = NULL;
@@ -31,14 +27,16 @@ void *agent_task(void *arg);
 
 void on_central_state_changed(Adapter *adapter, Device *device)
 {
+    (void)adapter;
+
     ConnectionState state = binc_device_get_connection_state(device);
     if (state == BINC_CONNECTED)
     {
-        binc_adapter_stop_advertising(adapter, advertisement);
+        binc_adapter_discoverable_off(adapter);
     }
     else if (state == BINC_DISCONNECTED)
     {
-        binc_adapter_start_advertising(adapter, advertisement);
+        binc_adapter_discoverable_on(adapter);
     }
 }
 
@@ -50,6 +48,17 @@ gboolean on_request_authorization(Device *device)
 
 gboolean callback(gpointer data)
 {
+    GList *devices = binc_adapter_get_devices(default_adapter);
+    for (GList *iter = devices; iter; iter = iter->next)
+    {
+        Device *dev = iter->data;
+        if (dev)
+        {
+            binc_device_disconnect(dev);
+        }
+    }
+    g_list_free(devices);
+
     if (app != NULL)
     {
         binc_adapter_unregister_application(default_adapter, app);
@@ -70,15 +79,6 @@ gboolean callback(gpointer data)
 
     if (default_adapter != NULL)
     {
-        GList *devices = binc_adapter_get_devices(default_adapter);
-        for (GList *iter; iter; iter = iter->next)
-        {
-            Device *dev = iter->data;
-            if (dev)
-                binc_adapter_remove_device(default_adapter, dev);
-        }
-        g_list_free(devices);
-
         binc_adapter_free(default_adapter);
         default_adapter = NULL;
     }
@@ -112,35 +112,24 @@ void bt_agent_init()
             binc_adapter_power_on(default_adapter);
         }
 
-        binc_adapter_discoverable_on(default_adapter);
-        // binc_adapter_connectable_on(default_adapter);
+        binc_adapter_set_remote_central_cb(default_adapter, on_central_state_changed);
 
-        // binc_adapter_set_remote_central_cb(default_adapter, on_central_state_changed);
+        GList *devices = binc_adapter_get_devices(default_adapter);
+        for (GList *iter = devices; iter; iter = iter->next)
+        {
+            Device *dev = iter->data;
+            binc_device_connect(dev);
+        }
+
+        binc_adapter_discoverable_on(default_adapter);
 
         agent = binc_agent_create(default_adapter, "/speaker/agent", NO_INPUT_NO_OUTPUT);
         binc_agent_set_request_authorization_cb(agent, &on_request_authorization);
 
-        // GPtrArray *adv_service_uuids = g_ptr_array_new();
-        // g_ptr_array_add(adv_service_uuids, A2DP_PROF_UUID);
-        // g_ptr_array_add(adv_service_uuids, AVCRP_PROF_UUID);
-
-        // advertisement = binc_advertisement_create();
-        // binc_advertisement_set_local_name(advertisement, "CMPT433 Speaker");
-        // binc_advertisement_set_interval(advertisement, 500, 500);
-        // binc_advertisement_set_tx_power(advertisement, 5);
-        // binc_advertisement_set_services(advertisement, adv_service_uuids);
-        // binc_advertisement_set_appearance(advertisement, 0x0840);
-        // binc_advertisement_set_general_discoverable(advertisement, true);
-        // g_ptr_array_free(adv_service_uuids, TRUE);
-        // binc_adapter_start_advertising(default_adapter, advertisement);
-
         app = binc_create_application(default_adapter);
         binc_application_add_service(app, A2DP_SNK_UUID);
         binc_application_add_service(app, AVCRP_PROF_UUID);
-        binc_adapter_register_application(default_adapter, app);
     }
-
-    g_timeout_add_seconds(600, callback, loop);
 
     g_main_loop_run(loop);
 
@@ -148,27 +137,9 @@ void bt_agent_init()
 
     g_dbus_connection_close_sync(dbusconn, NULL, NULL);
     g_object_unref(dbusconn);
-
-    // stop_agent = false;
-    // if (pthread_create(&thread_id, NULL, agent_task, NULL) < 0)
-    // {
-    //     perror(__func__);
-    //     exit(EXIT_FAILURE);
-    // }
-
-    initialized = true;
 }
 
 void bt_agent_cleanup()
 {
-
-    stop_agent = true;
-    pthread_join(thread_id, NULL);
-}
-
-void *agent_task(void *arg)
-{
-    (void)arg;
-
-    return NULL;
+    callback(loop);
 }
