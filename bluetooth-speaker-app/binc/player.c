@@ -23,8 +23,10 @@
 #include <string.h>
 
 #include <glib.h>
+#include <gio/gio.h>
+// #include <dbus/dbus.h>
 
-#include "lib/gdbus.h"
+// #include "lib/gdbus.h"
 
 #include "lib/util.h"
 #include "lib/bluetooth.h"
@@ -44,7 +46,7 @@
 #define BLUEZ_MEDIA_INTERFACE "org.bluez.Media1"
 #define BLUEZ_MEDIA_PLAYER_INTERFACE "org.bluez.MediaPlayer1"
 
-static DBusConnection *dbus_conn;
+static GDBusConnection *dbus_conn;
 static GDBusProxy *default_player;
 static GList *medias = NULL;
 static GList *players = NULL;
@@ -78,15 +80,15 @@ static char *player_generator(const char *text, int state)
     return generic_generator(text, state, players);
 }
 
-static void play_reply(DBusMessage *message, void *user_data)
+static void play_reply(GDBusMessage *message, void *user_data)
 {
-    DBusError error;
+    GDBusError error;
 
     dbus_error_init(&error);
 
     if (dbus_set_error_from_message(&error, message) == TRUE)
     {
-        bt_shell_printf("Failed to play: %s\n", error.name);
+        bt_shell_printf("Failed to play: %s\n", error);
         dbus_error_free(&error);
         return bt_shell_noninteractive_quit(EXIT_FAILURE);
     }
@@ -114,15 +116,15 @@ static void cmd_play(int argc, char *argv[])
     bt_shell_printf("Attempting to play %s\n", argv[1] ?: "");
 }
 
-static void pause_reply(DBusMessage *message, void *user_data)
+static void pause_reply(GDBusMessage *message, void *user_data)
 {
-    DBusError error;
+    GDBusError error;
 
     dbus_error_init(&error);
 
     if (dbus_set_error_from_message(&error, message) == TRUE)
     {
-        bt_shell_printf("Failed to pause: %s\n", error.name);
+        bt_shell_printf("Failed to pause: %s\n", error);
         dbus_error_free(&error);
         return bt_shell_noninteractive_quit(EXIT_FAILURE);
     }
@@ -147,15 +149,15 @@ static void cmd_pause(int argc, char *argv[])
     bt_shell_printf("Attempting to pause\n");
 }
 
-static void stop_reply(DBusMessage *message, void *user_data)
+static void stop_reply(GDBusMessage *message, void *user_data)
 {
-    DBusError error;
+    GDBusError error;
 
     dbus_error_init(&error);
 
     if (dbus_set_error_from_message(&error, message) == TRUE)
     {
-        bt_shell_printf("Failed to stop: %s\n", error.name);
+        bt_shell_printf("Failed to stop: %s\n", error);
         dbus_error_free(&error);
         return bt_shell_noninteractive_quit(EXIT_FAILURE);
     }
@@ -180,15 +182,15 @@ static void cmd_stop(int argc, char *argv[])
     bt_shell_printf("Attempting to stop\n");
 }
 
-static void next_reply(DBusMessage *message, void *user_data)
+static void next_reply(GDBusMessage *message, void *user_data)
 {
-    DBusError error;
+    GDBusError error;
 
     dbus_error_init(&error);
 
     if (dbus_set_error_from_message(&error, message) == TRUE)
     {
-        bt_shell_printf("Failed to jump to next: %s\n", error.name);
+        bt_shell_printf("Failed to jump to next: %s\n", error);
         dbus_error_free(&error);
         return bt_shell_noninteractive_quit(EXIT_FAILURE);
     }
