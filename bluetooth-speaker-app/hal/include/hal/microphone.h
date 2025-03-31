@@ -32,6 +32,7 @@ enum keyword {
     KEYWORD_NONE,
     STOP,
     NEXT,
+    PREVIOUS,
     VOLUME_UP,
     VOLUME_DOWN
 };
