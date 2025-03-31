@@ -1,14 +1,19 @@
 # Build the app, using the HAL
 
+# Add include paths
 include_directories(include)
-file(GLOB MY_SOURCES "src/*.c" "src/*.cpp")
+include_directories(${CMAKE_SOURCE_DIR}/vosk)
 
-# Add microphone.cpp manually since it's outside of app/src
-list(APPEND MY_SOURCES "${CMAKE_SOURCE_DIR}/hal/src/microphone.cpp")
+# Add the path to the VOSK library
+link_directories(${CMAKE_SOURCE_DIR}/vosk)
 
+# Source files
+file(GLOB MY_SOURCES "src/*.c")
+
+# Executable
 add_executable(433-bluetooth-speaker ${MY_SOURCES})
 
-# Make use of the libraries
+# Link with internal HAL libraries
 target_link_libraries(433-bluetooth-speaker LINK_PRIVATE hal)
 target_link_libraries(433-bluetooth-speaker LINK_PRIVATE lcd)
 target_link_libraries(433-bluetooth-speaker LINK_PRIVATE lgpio)
@@ -18,28 +23,11 @@ target_link_libraries(433-bluetooth-speaker LINK_PRIVATE Binc)
 find_package(ALSA REQUIRED)
 target_link_libraries(433-bluetooth-speaker LINK_PRIVATE asound)
 
-# Add whisper.cpp static library
-add_library(whisper STATIC IMPORTED)
-set_target_properties(whisper PROPERTIES
-    IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/../../whisper.cpp/build/src/libwhisper.a"
-    INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/../../whisper.cpp"
-)
+# VOSK support
+target_link_libraries(433-bluetooth-speaker LINK_PRIVATE vosk)
 
-# Add ggml static library
-add_library(ggml STATIC IMPORTED)
-set_target_properties(ggml PROPERTIES
-    IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/../../whisper.cpp/build/ggml/src/libggml.a"
-    INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/../../whisper.cpp/ggml/include"
-)
-
-# Link additional GGML static libs directly
-target_link_libraries(433-bluetooth-speaker PRIVATE
-    "${CMAKE_SOURCE_DIR}/../../whisper.cpp/build/ggml/src/libggml.a"
-    "${CMAKE_SOURCE_DIR}/../../whisper.cpp/build/ggml/src/libggml-base.a"
-    "${CMAKE_SOURCE_DIR}/../../whisper.cpp/build/ggml/src/libggml-cpu.a"
-   #  "${CMAKE_SOURCE_DIR}/../../whisper.cpp/build/ggml/src/libggml-backend.a"
-    whisper
-)
+# json-c support
+target_link_libraries(433-bluetooth-speaker LINK_PRIVATE json-c)
 
 # Copy executable to final location
 add_custom_command(TARGET 433-bluetooth-speaker POST_BUILD 
@@ -48,11 +36,9 @@ add_custom_command(TARGET 433-bluetooth-speaker POST_BUILD
      "~/cmpt433/public/433-project/433-bluetooth-speaker" 
   COMMENT "Copying ARM executable to public NFS directory")
 
-# Copy Whisper model to NFS folder
+# Copy the VOSK model folder
 add_custom_command(TARGET 433-bluetooth-speaker POST_BUILD
-  COMMAND "${CMAKE_COMMAND}" -E copy
-    "${CMAKE_SOURCE_DIR}/../../whisper.cpp/models/ggml-base.en.bin"
-    "$ENV{HOME}/cmpt433/public/433-project/models/ggml-base.en.bin"
-  COMMENT "Copying Whisper model to public NFS directory"
-)
-
+  COMMAND "${CMAKE_COMMAND}" -E copy_directory
+    "${CMAKE_SOURCE_DIR}/vosk/vosk-model-small-en-us-0.15"
+    "~/cmpt433/public/433-project/vosk-model-small-en-us-0.15"
+  COMMENT "Copying VOSK model to public NFS directory")

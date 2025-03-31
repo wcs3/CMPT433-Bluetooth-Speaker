@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.18)
 project(light_sampler 
     VERSION 1.0 
     DESCRIPTION "Starter project" 
-    LANGUAGES C CXX
+    LANGUAGES C
 )
 
 # Compiler options (inherited by sub-folders)

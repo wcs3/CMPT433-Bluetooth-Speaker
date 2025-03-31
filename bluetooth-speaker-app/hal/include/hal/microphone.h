@@ -1,10 +1,6 @@
 #ifndef _MICROPHONE_H_
 #define _MICROPHONE_H_
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /*
 Explanation of each function provided by this module:
 1. microphone_init:
@@ -31,7 +27,7 @@ Explanation of each function provided by this module:
     Returns the first meaningful keyword detected (e.g., "stop", "next", "volume up")
 */
 
-// Enum to provide what the user have commanded
+// Enum to provide what the user has commanded
 enum keyword {
     KEYWORD_NONE,
     STOP,
@@ -47,9 +43,5 @@ void microphone_disable_audio_listening(void);
 const char* microphone_get_audio_input(void);
 enum keyword microphone_get_keyword_from_audio_input(void);
 void microphone_cleanup(void);
-
-#ifdef __cplusplus
-}
-#endif
 
 #endif // _MICROPHONE_H_
