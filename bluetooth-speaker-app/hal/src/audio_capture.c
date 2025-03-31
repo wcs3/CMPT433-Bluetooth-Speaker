@@ -52,8 +52,7 @@ static void* audio_capture_thread_loop(void* arg) {
         }
 
         if (frames > 0 && frames < ALSA_FRAMES_PER_READ) {
-			printf("Short read (expected %li, got %li)\n",
-					ALSA_FRAMES_PER_READ, frames);
+			printf("Short read (expected %d, got %ld)\n", ALSA_FRAMES_PER_READ, frames);
 		}
 
         if (frames > 0) {
