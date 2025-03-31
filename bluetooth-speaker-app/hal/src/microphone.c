@@ -65,15 +65,15 @@ const char* microphone_get_audio_input(void) {
 enum keyword microphone_get_keyword_from_audio_input(const char* audio_input) {
     assert(is_initialized);
 
-    if (strstr(audio_input, "stop")) {
+    if (strstr(audio_input_char, "stop")) {
         return STOP;
-    } else if (strstr(audio_input, "next song")) {
+    } else if (strstr(audio_input_char, "next song")) {
         return NEXT;
-    } else if (strstr(audio_input, "previous")) {
+    } else if (strstr(audio_input_char, "previous")) {
         return PREVIOUS;
-    }else if (strstr(audio_input, "volume up")) {
+    }else if (strstr(audio_input_char, "volume up")) {
         return VOLUME_UP;
-    } else if (strstr(audio_input, "volume down")) {
+    } else if (strstr(audio_input_char, "volume down")) {
         return VOLUME_DOWN;
     } else {
         return KEYWORD_NONE;
