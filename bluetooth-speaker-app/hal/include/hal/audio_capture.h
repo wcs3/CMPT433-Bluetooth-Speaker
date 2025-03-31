@@ -23,14 +23,15 @@ Explanation of each function provided by this module:
     Stops the background thread
 
 5. audio_capture_get_audio_buffer
-    Copies the most recent audio buffer into the provided buffer &
-    NOTE: The number of written samples is equal to AUDIO_BUFFER_SIZE
+    Copies the captured data in the previous session into the provided
+    buffer and updates the number of samples written into the buffer
+    NOTE: It is the caller's responsibility to free the provided buffer
 */
 
 void audio_capture_init(void);
 void audio_capture_cleanup(void);
 void audio_capture_start(void);
 void audio_capture_stop(void);
-void audio_capture_get_audio_buffer(short* out_buffer);
+void audio_capture_get_audio_buffer(short** out_buffer, size_t* out_size);
 
 #endif
