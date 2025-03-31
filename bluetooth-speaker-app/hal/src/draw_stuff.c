@@ -212,7 +212,7 @@ uint16_t to_16_bit_colour(int32_t colour)
     return r | g | b;
 }
 
-void draw_stuff_image(Olivec_Canvas* img)
+void draw_stuff_screen(Olivec_Canvas* img)
 {
 
     // // /*1.Create a new image cache named IMAGE_RGB and fill it with white*/

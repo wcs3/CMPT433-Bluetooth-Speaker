@@ -8,6 +8,7 @@
 static const char characters[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789~`!@#$%^&*()[{]}\\|;:\"\',<.>/? ";
 
 static Olivec_Canvas* char_images[NUM_CHARS];
+static Olivec_Canvas* volume_icon = NULL;
 
 int load_image_assets_init()
 {
@@ -21,11 +22,16 @@ int load_image_assets_init()
         int c = characters[i];
         snprintf(buf, BUF_SIZE, "./assets/img/characters/char_%d.png", c);
         char_images[c] = image_loader_load(buf);
-        printf("%s\n", buf);
         if(char_images[c] == NULL) {
             fprintf(stderr, "load_image_assets_init failed to load %s\n", buf);
             return 1;
         }
+    }
+
+    volume_icon = image_loader_load("./assets/img/icon/volume_icon.png");
+    if(volume_icon == NULL) {
+        fprintf(stderr, "load_image_assets_init failed to load %s\n", "./assets/img/icon/volume_icon.png");
+        return 2;
     }
 
     return 0;
@@ -40,10 +46,16 @@ Olivec_Canvas* load_image_assets_get_char(char c)
     }
 }
 
+Olivec_Canvas* load_image_assets_get_volume_icon()
+{
+    return volume_icon;
+}
+
 void load_image_assets_cleanup()
 {
     for(size_t i = 0; i < strlen(characters); i++) {
         int c = characters[i];
         image_loader_image_free(&char_images[c]);
     }
+    image_loader_image_free(&volume_icon);
 }
