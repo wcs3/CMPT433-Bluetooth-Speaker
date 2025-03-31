@@ -9,8 +9,8 @@ project(light_sampler
 # Compiler options (inherited by sub-folders)
 set(CMAKE_C_STANDARD 11)
 add_definitions(-D_POSIX_C_SOURCE=200809L)
-# add_compile_options(-Wall -Wpedantic -Wextra -Werror -g)
-add_compile_options(-g)
+add_compile_options(-Wall -Wpedantic -Wextra -Werror -g)
+# add_compile_options(-g)
 add_compile_options(-fdiagnostics-color )
 
 # Enable address sanitizer
@@ -29,6 +29,7 @@ add_subdirectory(binc)
 add_subdirectory(hal)  
 add_subdirectory(app)
 add_subdirectory(test)
+add_subdirectory(ui)
 
 # copy over the assets folder to ~/cmpt433/public/433-project/
 set(ASSETS_SOURCE_DIR "${CMAKE_SOURCE_DIR}/assets")

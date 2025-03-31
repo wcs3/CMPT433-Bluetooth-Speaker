@@ -1,5 +1,4 @@
 #include "hal/draw_stuff.h"
-#define OLIVEC_IMPLEMENTATION
 #include "hal/olive.h"
 
 #include "DEV_Config.h"
@@ -15,10 +14,18 @@
 
 static UWORD *s_fb;
 static bool isInitialized = false;
-static const int LCD_WIDTH = 240;
-static const int LCD_HEIGHT = 240;
+
 static int max_chars_per_line = -1;
 static int max_num_lines = -1;
+
+uint32_t screen_buff_pixels[LCD_WIDTH * LCD_HEIGHT];
+
+static Olivec_Canvas screen_buffer = {
+    .pixels = screen_buff_pixels,
+    .width = LCD_WIDTH,
+    .height = LCD_HEIGHT,
+    .stride = LCD_WIDTH
+};
 
 void draw_stuff_init()
 {
@@ -119,7 +126,6 @@ void draw_stuff_update_screen(char* msg)
     LCD_1IN54_DisplayWindows(x, y, LCD_1IN54_WIDTH, y + LCD_HEIGHT, s_fb);
 }
 
-
 void draw_stuff_update_screen2(void)
 {
     assert(isInitialized);
@@ -197,7 +203,7 @@ void draw_stuff_update_screen2(void)
     // #endif
 }
 
-uint16_t to_16_bit_colour_i32(int32_t colour)
+uint16_t to_16_bit_colour(int32_t colour)
 {
     // rrrr rggg gggb bbbb
     uint16_t r = (OLIVEC_RED(colour) / 8) << 11;
@@ -206,7 +212,7 @@ uint16_t to_16_bit_colour_i32(int32_t colour)
     return r | g | b;
 }
 
-void draw_stuff_image(Olivec_Canvas* img, int x, int y)
+void draw_stuff_image(Olivec_Canvas* img)
 {
 
     // // /*1.Create a new image cache named IMAGE_RGB and fill it with white*/
@@ -232,7 +238,7 @@ void draw_stuff_image(Olivec_Canvas* img, int x, int y)
     for(size_t y_draw = 0; y_draw < img->height; y_draw++) {
         for(size_t x_draw = 0; x_draw < img->width; x_draw++) {
             if(x_draw < LCD_1IN54_WIDTH && y_draw < LCD_1IN54_HEIGHT) {
-                Paint_SetPixel(x_draw, y_draw, to_16_bit_colour_i32(img->pixels[y_draw * img->width + x_draw]));
+                Paint_SetPixel(x_draw, y_draw, to_16_bit_colour(img->pixels[y_draw * img->width + x_draw]));
             }
             img_i++;
         }     
@@ -253,7 +259,7 @@ void draw_stuff_canvas(Olivec_Canvas* screen)
     for(size_t y_draw = 0; y_draw < screen->height; y_draw++) {
         for(size_t x_draw = 0; x_draw < screen->width; x_draw++) {
             if(x_draw < LCD_1IN54_WIDTH && y_draw < LCD_1IN54_HEIGHT) {
-                Paint_SetPixel(x_draw, y_draw, to_16_bit_colour_i32(screen->pixels[y_draw * screen->width + x_draw]));
+                Paint_SetPixel(x_draw, y_draw, to_16_bit_colour(screen->pixels[y_draw * screen->width + x_draw]));
             }
             img_i++;
         }     
@@ -283,7 +289,7 @@ void olivec_test()
     olivec_sprite_blend(oc, 0, 0, oc2.width * 3 / 2, oc2.height * 3 / 2, oc2);
     printf("reached\n");
 
-    printf("%hx %d %d %d %d\n", to_16_bit_colour_i32(oc.pixels[20]), OLIVEC_RED(oc.pixels[20]), OLIVEC_GREEN(oc.pixels[20]), OLIVEC_BLUE(oc.pixels[20]), OLIVEC_ALPHA(oc.pixels[20]));
+    printf("%hx %d %d %d %d\n", to_16_bit_colour(oc.pixels[20]), OLIVEC_RED(oc.pixels[20]), OLIVEC_GREEN(oc.pixels[20]), OLIVEC_BLUE(oc.pixels[20]), OLIVEC_ALPHA(oc.pixels[20]));
     draw_stuff_canvas(&oc);
     free(px1);
     free(px2);
@@ -308,6 +314,26 @@ void olivec_test()
     // uint32_t blend_test = green;
     // olivec_blend_color(&green, OLIVEC_RGBA(255, 255, 255, 0));
     // printf("%08X\n", blend_test);
+}
+
+
+
+void draw_stuff_draw_buffer()
+{
+    Paint_NewImage(s_fb, LCD_1IN54_WIDTH, LCD_1IN54_HEIGHT, 0, WHITE, 16);
+
+    Paint_Clear(WHITE);
+    int img_i = 0;
+    for(size_t y_draw = 0; y_draw < screen_buffer.height; y_draw++) {
+        for(size_t x_draw = 0; x_draw < screen_buffer.width; x_draw++) {
+            if(x_draw < LCD_1IN54_WIDTH && y_draw < LCD_1IN54_HEIGHT) {
+                Paint_SetPixel(x_draw, y_draw, to_16_bit_colour(screen_buffer.pixels[y_draw * screen_buffer.width + x_draw]));
+            }
+            img_i++;
+        }     
+    }
+        
+    LCD_1IN54_Display(s_fb);
 }
 
 /*

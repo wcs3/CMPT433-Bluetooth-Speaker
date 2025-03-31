@@ -8,6 +8,7 @@ add_executable(lcd-test1 "lcd-test1.c")
 target_link_libraries(lcd-test1 LINK_PRIVATE hal)
 target_link_libraries(lcd-test1 LINK_PRIVATE lcd)
 target_link_libraries(lcd-test1 LINK_PRIVATE lgpio)
+target_link_libraries(lcd-test1 LINK_PRIVATE ui)
 
 # Copy executable to final location (change `hello_world` to project name as needed)
 add_custom_command(TARGET lcd-test1 POST_BUILD 
