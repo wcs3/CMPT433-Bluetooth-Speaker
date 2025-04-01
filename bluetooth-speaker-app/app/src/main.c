@@ -13,6 +13,9 @@
 #include "hal/light_sensor.h"
 #include "hal/led_pwm.h"
 #include "hal/draw_stuff.h"
+#include "hal/microphone.h"
+#include "hal/audio_capture.h"
+
 
 #include "app/init.h"
 #include "app/server.h"
@@ -43,10 +46,26 @@ int main()
     // functions that start other application threads
     server_init();
     user_interface_init();
-    
+
+    // Microphone test logic
+    // audio_capture_init();
+    // microphone_init();
+    // microphone_enable_audio_listening();
+
+    // printf("Speak now. Listening for 5 seconds...\n");
+    // sleep(5);
+
+    // microphone_disable_audio_listening();
+    // microphone_cleanup();
+    // audio_capture_cleanup();
+
+    // const char* text = microphone_get_audio_input();
+    // printf("Transcribed text: %s\n", text);
+
     init_end();
 
     server_cleanup();
     user_interface_cleanup();
+
     return 0;
 }
