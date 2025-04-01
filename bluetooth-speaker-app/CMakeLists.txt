@@ -10,7 +10,8 @@ project(light_sampler
 set(CMAKE_C_STANDARD 11)
 add_definitions(-D_POSIX_C_SOURCE=200809L)
 add_compile_options(-Wall -Wpedantic -Wextra -Werror -g)
-add_compile_options(-fdiagnostics-color)
+# add_compile_options(-g)
+add_compile_options(-fdiagnostics-color )
 
 # Enable address sanitizer
 # (Comment this out to make your code faster)
@@ -28,6 +29,7 @@ add_subdirectory(binc)
 add_subdirectory(hal)  
 add_subdirectory(app)
 add_subdirectory(test)
+add_subdirectory(ui)
 
 # copy over the assets folder to ~/cmpt433/public/433-project/
 set(ASSETS_SOURCE_DIR "${CMAKE_SOURCE_DIR}/assets")
