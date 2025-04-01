@@ -48,19 +48,19 @@ int main()
     user_interface_init();
 
     // Microphone test logic
-    audio_capture_init();
-    microphone_init();
-    microphone_enable_audio_listening();
+    // audio_capture_init();
+    // microphone_init();
+    // microphone_enable_audio_listening();
 
-    printf("Speak now. Listening for 5 seconds...\n");
-    sleep(5);
+    // printf("Speak now. Listening for 5 seconds...\n");
+    // sleep(5);
 
-    microphone_disable_audio_listening();
-    microphone_cleanup();
-    audio_capture_cleanup();
+    // microphone_disable_audio_listening();
+    // microphone_cleanup();
+    // audio_capture_cleanup();
 
-    const char* text = microphone_get_audio_input();
-    printf("Transcribed text: %s\n", text);
+    // const char* text = microphone_get_audio_input();
+    // printf("Transcribed text: %s\n", text);
 
     init_end();
 

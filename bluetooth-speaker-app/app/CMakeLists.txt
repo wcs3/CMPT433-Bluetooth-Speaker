@@ -29,6 +29,14 @@ target_link_libraries(433-bluetooth-speaker LINK_PRIVATE vosk)
 # json-c support
 target_link_libraries(433-bluetooth-speaker LINK_PRIVATE json-c)
 
+# Set runtime search path for shared libraries (during build and post-build usage)
+set_target_properties(433-bluetooth-speaker PROPERTIES
+  BUILD_RPATH "$ORIGIN"
+  INSTALL_RPATH "$ORIGIN"
+  SKIP_BUILD_RPATH FALSE
+  BUILD_WITH_INSTALL_RPATH TRUE
+)
+
 # Copy executable to final location
 add_custom_command(TARGET 433-bluetooth-speaker POST_BUILD 
   COMMAND "${CMAKE_COMMAND}" -E copy 
@@ -42,3 +50,10 @@ add_custom_command(TARGET 433-bluetooth-speaker POST_BUILD
     "${CMAKE_SOURCE_DIR}/vosk/vosk-model-small-en-us-0.15"
     "~/cmpt433/public/433-project/vosk-model-small-en-us-0.15"
   COMMENT "Copying VOSK model to public NFS directory")
+
+# Copy the VOSK shared library
+add_custom_command(TARGET 433-bluetooth-speaker POST_BUILD
+  COMMAND "${CMAKE_COMMAND}" -E copy
+    "${CMAKE_SOURCE_DIR}/vosk/libvosk.so"
+    "~/cmpt433/public/433-project/libvosk.so"
+  COMMENT "Copying VOSK shared library to public NFS directory")
