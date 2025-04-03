@@ -10,7 +10,7 @@
 #include <gio/gio.h>
 
 #define BLUEZ_MEDIA_PLAYER_INTERFACE "org.bluez.MediaPlayer1"
-#define BLUEZ_NAME "bluez.org"
+#define BLUEZ_NAME "org.bluez"
 #define BLUEZ_OBJECT_MANAGER_PATH "/"
 
 typedef struct
@@ -213,18 +213,16 @@ static void load_existing_proxies(GDBusObjectManager *manager)
         {
             GDBusProxy *proxy = G_DBUS_PROXY(ll->data);
 
-            bool found_watcher = false;
             for (GList *lll = proxy_watchers; lll; lll = lll->next)
             {
                 proxy_watch_t *watch = lll->data;
                 if (watch->filter && watch->filter(proxy) && watch->added_cb)
                 {
+                    g_object_ref(proxy);
                     watch->added_cb(proxy);
-                    found_watcher = true;
                 }
             }
-            if (!found_watcher)
-                g_object_unref(proxy);
+            g_object_unref(proxy);
         }
         g_list_free(interfaces);
     }
