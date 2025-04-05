@@ -4,7 +4,7 @@
         {
             "name": "aarch64-linux-gnu",
             "displayName": "Build aarch64 binary on non-native debian host",
-            "binaryDir": "${sourceDir}/out/build/${presetName}",
+            "binaryDir": "${sourceDir}/build",
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_TOOLCHAIN_FILE": "${sourceDir}/aarch64-linux-gnu.cmake",
