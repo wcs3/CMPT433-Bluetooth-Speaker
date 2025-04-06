@@ -186,8 +186,51 @@ void bt_player_send_command_async(bt_player_cmd_e command,
 
 bool bt_player_get_property(bt_player_prop_e property, void *retval)
 {
-    (void)property;
-    (void)retval;
+    const prop_entry_t *entry;
+    GError *error;
+    GVariant *val;
+
+    entry = &prop_entries[property];
+    error = NULL;
+
+    if (!*entry->proxy)
+    {
+        g_printerr("Proxy for property '%s' is unavailable\n",
+                   entry->prop_name);
+        return false;
+    }
+
+    if (!(val = dbus_proxy_get_property(*entry->proxy, entry->prop_name, &error)))
+    {
+        g_printerr("%s\n", error->message);
+        return false;
+    }
+
+    entry->update_val_fn(val);
+
+    switch (property)
+    {
+    case BT_PLAYER_PROP_PLAYBACK_STATUS:
+        *(bt_player_status_e *)retval = props.status;
+        break;
+    case BT_PLAYER_PROP_SHUFFLE_MODE:
+        *(bt_player_shuffle_e *)retval = props.shuffle;
+        break;
+    case BT_PLAYER_PROP_REPEAT_MODE:
+        *(bt_player_repeat_e *)retval = props.repeat;
+        break;
+    case BT_PLAYER_PROP_PLAYBACK_POSITION:
+        *(uint32_t *)retval = props.position;
+        break;
+    case BT_PLAYER_PROP_TRACK:
+        *(bt_player_track_info_t *)retval = props.track_info;
+        break;
+    case BT_PLAYER_PROP_VOLUME:
+        *(uint8_t *)retval = props.volume;
+        break;
+    default:
+        break;
+    }
 
     return false;
 }
@@ -254,8 +297,6 @@ void bt_player_set_property_changed_cb(bt_player_prop_e property,
 {
     data.prop_cb_data[property].cb = callback;
     data.prop_cb_data[property].user_data = user_data;
-
-    return;
 }
 
 static bool proxy_filter(GDBusProxy *proxy)
@@ -358,6 +399,7 @@ static void proxy_removed_cb(GDBusProxy *removed_proxy)
     }
 }
 
+// Update status property only if new val different from old val. Return true if changed
 static bool prop_update_status(GVariant *val)
 {
     const gchar *status_str = g_variant_get_string(val, NULL);
@@ -377,6 +419,7 @@ static bool prop_update_status(GVariant *val)
     return true;
 }
 
+// Update shuffle property only if new val different from old val. Return true if changed
 static bool prop_update_shuffle(GVariant *val)
 {
     const gchar *shuffle_str = g_variant_get_string(val, NULL);
@@ -392,6 +435,7 @@ static bool prop_update_shuffle(GVariant *val)
     return true;
 }
 
+// Update repeat property only if new val different from old val. Return true if changed
 static bool prop_update_repeat(GVariant *val)
 {
     const gchar *repeat_str = g_variant_get_string(val, NULL);
@@ -409,6 +453,7 @@ static bool prop_update_repeat(GVariant *val)
     return true;
 }
 
+// Update position property only if new val different from old val. Return true if changed
 static bool prop_update_position(GVariant *val)
 {
     uint32_t new_pos = g_variant_get_uint32(val);
@@ -435,6 +480,7 @@ static bool track_equal(const bt_player_track_info_t *t1, const bt_player_track_
            t1->duration == t2->duration;
 }
 
+// Update track property only if new val different from old val. Return true if changed
 static bool prop_update_track(GVariant *val)
 {
     GVariantIter *iter;
@@ -529,7 +575,6 @@ void bt_player_set_play_sync(GDBusProxy *player_proxy){
             g_printerr("\nSuccess play\n");
         }
 }
-
 
 #include <string.h>
 #include <stdio.h>
