@@ -4,6 +4,8 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#include <gio/gio.h>
+
 typedef enum
 {
     BT_PLAYER_STATUS_STOPPED,
@@ -154,5 +156,33 @@ typedef void (*bt_player_prop_cb)(const void *changed_val, void *user_data);
 void bt_player_set_property_changed_cb(bt_player_prop_e property,
                                        bt_player_prop_cb callback,
                                        void *user_data);
+
+/**
+ * Send a "Pause" command to the playing bluetooth device, synchronously.
+ *
+ * This function sends a "Pause" command to bluez over dbus, waits for bluez to reply
+ * with a message indicating if the command executed successfully, then
+ * returns.
+ */
+void bt_player_set_pause_sync(GDBusProxy *player_proxy);
+
+/**
+ * Send a "Play" command to the playing bluetooth device, synchronously.
+ *
+ * This function sends a "Play" command to bluez over dbus, waits for bluez to reply
+ * with a message indicating if the command executed successfully, then
+ * returns.
+ */
+void bt_player_set_play_sync(GDBusProxy *player_proxy);
+
+/**
+* Prints data from the proxy's properties.
+*
+* This function parses metadata from the multimedia player proxy's properties  
+* and printing them out, then returns.
+*/
+void print_track_data(GDBusProxy *player_proxy);
+
+bool is_paused_status();
 
 #endif // __BT_PLAYER_H__
