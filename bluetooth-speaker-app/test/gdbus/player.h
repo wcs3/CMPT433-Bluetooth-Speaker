@@ -60,6 +60,8 @@ typedef enum
     BT_PLAYER_CMD_STOP,
     BT_PLAYER_CMD_NEXT,
     BT_PLAYER_CMD_PREV,
+    BT_PLAYER_CMD_FF, // doesn't appear to work on android
+    BT_PLAYER_CMD_RW, // doesn't appear to work on android
     BT_PLAYER_CMD_cnt,
 } bt_player_cmd_e;
 
@@ -201,11 +203,11 @@ void bt_player_set_pause_sync(GDBusProxy *player_proxy);
 void bt_player_set_play_sync(GDBusProxy *player_proxy);
 
 /**
-* Prints data from the proxy's properties.
-*
-* This function parses metadata from the multimedia player proxy's properties  
-* and printing them out, then returns.
-*/
+ * Prints data from the proxy's properties.
+ *
+ * This function parses metadata from the multimedia player proxy's properties
+ * and printing them out, then returns.
+ */
 void print_track_data(GDBusProxy *player_proxy);
 
 bool is_paused_status();
