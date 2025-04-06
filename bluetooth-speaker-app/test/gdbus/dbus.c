@@ -1,36 +1,210 @@
+#include "dbus.h"
+
 #include <stdio.h>
 #include <stdbool.h>
-#include <errno.h>
 #include <unistd.h>
 #include <stdlib.h>
-#include <signal.h>
-#include <sys/signalfd.h>
+#include <pthread.h>
 
 #include <glib.h>
-#include <gio/gio.h>
 
-#include "player.h"
-
-
-#define BLUEZ_MEDIA_PLAYER_INTERFACE "org.bluez.MediaPlayer1"
+#define DBUS_PROPERTIES_INTERFACE "org.freedesktop.DBus.Properties"
 #define BLUEZ_NAME "org.bluez"
 #define BLUEZ_OBJECT_MANAGER_PATH "/"
 
-typedef struct
+struct proxy_watch_t
 {
-    bool (*filter)(const GDBusProxy *);
-    void (*added_cb)(GDBusProxy *);
-    void (*removed_cb)(GDBusProxy *);
-    void (*changed_cb)(GDBusProxy *, GVariant *);
-} proxy_watch_t;
+    dbus_proxy_watch_filter_cb filter;
+    dbus_proxy_watch_added_cb added_cb;
+    dbus_proxy_watch_removed_cb removed_cb;
+};
 
-static GList *proxy_watchers = NULL;
+static GList *watchers_list = NULL;
+pthread_mutex_t watchers_list_mtx = PTHREAD_MUTEX_INITIALIZER;
 
 static GMainLoop *main_loop;
-static GDBusConnection *dbus_conn;
-static GDBusProxy *default_player;
-static GSList *players = NULL;
+static GDBusObjectManager *manager;
 
+static pthread_t dbus_thread_id;
+
+static void *dbus_routine(void *arg);
+
+static void on_notify_name_owner(GObject *object, GParamSpec *pspec, gpointer user_data);
+static void on_object_added(GDBusObjectManager *manager,
+                            GDBusObject *object,
+                            gpointer user_data);
+static void on_object_removed(GDBusObjectManager *manager,
+                              GDBusObject *object,
+                              gpointer user_data);
+
+static void preload_watcher(dbus_proxy_watch_t *watch);
+
+void dbus_init()
+{
+    GError *error = NULL;
+
+    manager = g_dbus_object_manager_client_new_for_bus_sync(G_BUS_TYPE_SYSTEM,
+                                                            G_DBUS_OBJECT_MANAGER_CLIENT_FLAGS_NONE,
+                                                            BLUEZ_NAME,
+                                                            BLUEZ_OBJECT_MANAGER_PATH,
+                                                            NULL, NULL, NULL, NULL,
+                                                            &error);
+
+    if (manager == NULL)
+    {
+        g_printerr("Error getting object manager client: %s", error->message);
+        exit(EXIT_FAILURE);
+    }
+
+    gchar *name_owner = g_dbus_object_manager_client_get_name_owner(G_DBUS_OBJECT_MANAGER_CLIENT(manager));
+    g_print("name-owner: %s\n", name_owner);
+    g_free(name_owner);
+
+    g_signal_connect(manager,
+                     "notify::name-owner",
+                     G_CALLBACK(on_notify_name_owner),
+                     NULL);
+    g_signal_connect(manager,
+                     "object-added",
+                     G_CALLBACK(on_object_added),
+                     NULL);
+    g_signal_connect(manager,
+                     "object-removed",
+                     G_CALLBACK(on_object_removed),
+                     NULL);
+
+    if (pthread_create(&dbus_thread_id, NULL, dbus_routine, NULL) < 0)
+    {
+        perror("dbus thread create");
+        exit(EXIT_FAILURE);
+    }
+}
+
+void dbus_cleanup()
+{
+    g_main_loop_quit(main_loop);
+
+    if (pthread_join(dbus_thread_id, NULL) < 0)
+    {
+        perror("dbus thread join");
+        exit(EXIT_FAILURE);
+    }
+
+    g_object_unref(manager);
+
+    g_list_free_full(watchers_list, g_free);
+}
+
+static void *dbus_routine(void *arg)
+{
+    (void)arg;
+
+    GMainContext *main_context = g_main_context_get_thread_default();
+    main_loop = g_main_loop_new(main_context, FALSE);
+
+    g_main_loop_run(main_loop);
+
+    g_main_loop_unref(main_loop);
+
+    return NULL;
+}
+
+dbus_proxy_watch_t *dbus_add_proxy_watch(dbus_proxy_watch_filter_cb filter_cb,
+                                         dbus_proxy_watch_added_cb added_cb,
+                                         dbus_proxy_watch_removed_cb removed_cb)
+{
+    g_assert(filter_cb);
+    g_assert(added_cb || removed_cb);
+
+    dbus_proxy_watch_t *watch = g_new(dbus_proxy_watch_t, 1);
+    watch->filter = filter_cb;
+    watch->added_cb = added_cb;
+    watch->removed_cb = removed_cb;
+
+    if (watch->added_cb)
+        preload_watcher(watch);
+
+    watchers_list = g_list_append(watchers_list, watch);
+
+    return watch;
+}
+
+void dbus_remove_proxy_watch(dbus_proxy_watch_t *watch)
+{
+    if (g_list_find(watchers_list, watch))
+    {
+        watchers_list = g_list_remove(watchers_list, watch);
+        g_free(watch);
+    }
+}
+
+GVariant *dbus_proxy_get_property(GDBusProxy *proxy,
+                                  const gchar *property_name,
+                                  GError **error)
+{
+    GVariant *param = g_variant_new("(ss)",
+                                    g_dbus_proxy_get_interface_name(proxy),
+                                    property_name);
+
+    return g_dbus_proxy_call_sync(proxy,
+                                  DBUS_PROPERTIES_INTERFACE ".Get",
+                                  param,
+                                  G_DBUS_CALL_FLAGS_NONE,
+                                  -1,
+                                  NULL,
+                                  error);
+
+    g_variant_unref(param);
+}
+
+bool dbus_proxy_set_property(GDBusProxy *proxy,
+                             const gchar *property_name,
+                             GVariant *value,
+                             GError **error)
+{
+    GVariant *param = g_variant_new("(ssv)",
+                                    g_dbus_proxy_get_interface_name(proxy),
+                                    property_name, value);
+
+    return g_dbus_proxy_call_sync(proxy,
+                                  DBUS_PROPERTIES_INTERFACE ".Set",
+                                  param,
+                                  G_DBUS_CALL_FLAGS_NONE,
+                                  -1,
+                                  NULL,
+                                  error) != NULL;
+
+    g_variant_unref(param);
+}
+
+static void preload_watcher(dbus_proxy_watch_t *watch)
+{
+    GList *objects;
+    GList *l;
+
+    objects = g_dbus_object_manager_get_objects(manager);
+    for (l = objects; l != NULL; l = l->next)
+    {
+        GDBusObject *object = G_DBUS_OBJECT(l->data);
+        GList *interfaces;
+        GList *ll;
+
+        interfaces = g_dbus_object_get_interfaces(G_DBUS_OBJECT(object));
+        for (ll = interfaces; ll != NULL; ll = ll->next)
+        {
+            GDBusProxy *proxy = G_DBUS_PROXY(ll->data);
+
+            if (watch->filter(proxy))
+            {
+                g_object_ref(proxy);
+                watch->added_cb(proxy);
+            }
+            g_object_unref(proxy);
+        }
+        g_list_free(interfaces);
+    }
+    g_list_free_full(objects, g_object_unref);
+}
 
 static void on_notify_name_owner(GObject *object, GParamSpec *pspec, gpointer user_data)
 {
@@ -48,82 +222,6 @@ static void on_notify_name_owner(GObject *object, GParamSpec *pspec, gpointer us
     g_free(name_owner);
 }
 
-static char *proxy_description(GDBusProxy *proxy, const char *title,
-                               const char *description)
-{
-    const char *path;
-
-    path = g_dbus_proxy_get_object_path(proxy);
-
-    return g_strdup_printf("%s%s%s%s %s ",
-                           description ? "[" : "",
-                           description ? description : "",
-                           description ? "] " : "",
-                           title, path);
-}
-
-static void print_player(GDBusProxy *proxy, const char *description)
-{
-    char *str;
-
-    str = proxy_description(proxy, "Player", description);
-
-    g_print("%s%s\n", str, default_player == proxy ? "[default]" : "");
-
-    g_free(str);
-}
-
-void cmd_list()
-{
-    GSList *l;
-
-    for (l = players; l; l = g_slist_next(l))
-    {
-        GDBusProxy *proxy = l->data;
-        print_player(proxy, NULL);
-    }
-}   
-
-static void print_property(GDBusProxy *proxy, const char *name)
-{
-    GVariant *property;
-
-    if ((property = g_dbus_proxy_get_cached_property(proxy, name)) == NULL)
-        return;
-
-    gchar *str = g_variant_print(property, FALSE);
-    g_print("%s\n", str);
-    g_free(str);
-}
-
-void cmd_show()
-{
-    GDBusProxy *proxy;
-
-    proxy = default_player;
-
-    g_print("Player %s\n", g_dbus_proxy_get_object_path(proxy));
-
-    print_property(proxy, "Name");
-    print_property(proxy, "Repeat");
-    print_property(proxy, "Equalizer");
-    print_property(proxy, "Shuffle");
-    print_property(proxy, "Scan");
-    print_property(proxy, "Status");
-    print_property(proxy, "Position");
-    print_property(proxy, "Track");
-}
-
-static void player_added(GDBusProxy *proxy)
-{
-    players = g_slist_append(players, proxy);
-
-    if (default_player == NULL)
-        default_player = players->data;
-
-    print_player(proxy, "NEW");
-}
-
 static void on_object_added(GDBusObjectManager *manager,
                             GDBusObject *object,
                             gpointer user_data)
@@ -131,25 +229,24 @@ static void on_object_added(GDBusObjectManager *manager,
     (void)manager;
     (void)user_data;
 
-    g_print("Object '%s' added", g_dbus_object_get_object_path(object));
-
     GList *proxy_list = g_dbus_object_get_interfaces(object);
 
-    if (proxy_list)
-        g_print(" with interfaces:");
-
-    g_print("\n");
-
-    for (GList *iter = proxy_list; iter; iter = iter->next)
+    for (GList *l = proxy_list; l; l = l->next)
     {
-        GDBusProxy *proxy = iter->data;
-        const gchar *iface_name = g_dbus_proxy_get_interface_name(proxy);
+        GDBusProxy *proxy = l->data;
 
-        g_print("\t'%s'\n", iface_name);
+        for (GList *ll = watchers_list; ll; ll = ll->next)
+        {
+            dbus_proxy_watch_t *watch = ll->data;
 
-        if (g_str_equal(iface_name, BLUEZ_MEDIA_PLAYER_INTERFACE))
-            player_added(proxy);
+            if (watch->filter(proxy) && watch->added_cb)
+            {
+                g_object_ref(proxy);
+                watch->added_cb(proxy);
+            }
+        }
     }
+    g_list_free_full(proxy_list, g_object_unref);
 }
 
 static void on_object_removed(GDBusObjectManager *manager,
@@ -159,204 +256,19 @@ static void on_object_removed(GDBusObjectManager *manager,
     (void)manager;
     (void)user_data;
 
-    g_print("Object '%s' removed", g_dbus_object_get_object_path(object));
-
     GList *proxy_list = g_dbus_object_get_interfaces(object);
 
     for (GList *iter = proxy_list; iter; iter = iter->next)
     {
         GDBusProxy *proxy = iter->data;
 
-        for (GList *iter2 = proxy_watchers; iter2; iter2 = iter2->next)
+        for (GList *iter2 = watchers_list; iter2; iter2 = iter2->next)
         {
-            proxy_watch_t *watch = iter2->data;
-            if (watch->filter && watch->filter(proxy) && watch->removed_cb)
+            dbus_proxy_watch_t *watch = iter2->data;
+            if (watch->filter(proxy) && watch->removed_cb)
                 watch->removed_cb(proxy);
         }
     }
 
-    g_list_free(proxy_list);
-}
-
-static void on_property_changed(GDBusObjectManagerClient *manager,
-                                GDBusObjectProxy *object_proxy,
-                                GDBusProxy *interface_proxy,
-                                GVariant *changed_properties,
-                                const gchar *const *invalidated_properties,
-                                gpointer user_data)
-{
-    (void)manager;
-    (void)object_proxy;
-    (void)invalidated_properties;
-    (void)user_data;
-
-    for (GList *iter = proxy_watchers; iter; iter = iter->next)
-    {
-        proxy_watch_t *watch = iter->data;
-        if (watch->filter && watch->filter(interface_proxy) && watch->changed_cb)
-            watch->changed_cb(interface_proxy, changed_properties);
-    }
-}
-
-static void load_existing_proxies(GDBusObjectManager *manager)
-{
-    GList *objects;
-    GList *l;
-
-    g_print("Object manager at %s\n", g_dbus_object_manager_get_object_path(manager));
-    objects = g_dbus_object_manager_get_objects(manager);
-    for (l = objects; l != NULL; l = l->next)
-    {
-        GDBusObject *object = G_DBUS_OBJECT(l->data);
-        GList *interfaces;
-        GList *ll;
-        g_print(" - Object at %s\n", g_dbus_object_get_object_path(G_DBUS_OBJECT(object)));
-
-        interfaces = g_dbus_object_get_interfaces(G_DBUS_OBJECT(object));
-        for (ll = interfaces; ll != NULL; ll = ll->next)
-        {
-            GDBusProxy *proxy = G_DBUS_PROXY(ll->data);
-
-            const gchar *iface_name = g_dbus_proxy_get_interface_name(proxy);
-
-            // g_print("\t'%s'\n", iface_name);
-
-            if (g_str_equal(iface_name, BLUEZ_MEDIA_PLAYER_INTERFACE))
-                player_added(proxy);
-
-            for (GList *lll = proxy_watchers; lll; lll = lll->next)
-            {
-                proxy_watch_t *watch = lll->data;
-                if (watch->filter && watch->filter(proxy) && watch->added_cb)
-                {
-                    g_object_ref(proxy);
-                    watch->added_cb(proxy);
-                }
-            }
-            g_object_unref(proxy);
-        }
-        g_list_free(interfaces);
-    }
-    g_list_free_full(objects, g_object_unref);
-}
-
-gboolean callback(gpointer data)
-{
-    g_slist_free_full(players, g_object_unref);
-
-    g_main_loop_quit((GMainLoop *)data);
-    return FALSE;
-}
-
-static void cleanup_handler(int signo)
-{
-    if (signo == SIGINT)
-    {
-        callback(main_loop);
-    }
-}
-
-int main()
-{
-    GDBusObjectManager *manager;
-    GError *error;
-
-    manager = NULL;
-    main_loop = NULL;
-
-    main_loop = g_main_loop_new(NULL, FALSE);
-    dbus_conn = g_bus_get_sync(G_BUS_TYPE_SYSTEM, NULL, NULL);
-
-    signal(SIGINT, cleanup_handler);
-
-    error = NULL;
-    manager = g_dbus_object_manager_client_new_sync(dbus_conn,
-                                                    G_DBUS_OBJECT_MANAGER_CLIENT_FLAGS_NONE,
-                                                    BLUEZ_NAME,
-                                                    BLUEZ_OBJECT_MANAGER_PATH,
-                                                    NULL, NULL, NULL, NULL,
-                                                    &error);
-
-    if (manager == NULL)
-    {
-        g_printerr("Error getting object manager client: %s", error->message);
-        g_error_free(error);
-        goto out;
-    }
-
-    gchar *name_owner = g_dbus_object_manager_client_get_name_owner(G_DBUS_OBJECT_MANAGER_CLIENT(manager));
-    g_print("name-owner: %s\n", name_owner);
-    g_free(name_owner);
-
-    load_existing_proxies(manager);
-
-    // printf("\nData from proxy property:");
-    // cmd_show();
-
-
-    ////////////////////////////// testing //////////////////
-
-    printf("\nData parsed:\n");
-    print_track_data(default_player);
-
-
-    if(is_paused_status()){
-        printf("\nMusic is on!\n");
-        bt_player_set_pause_sync(default_player);
-    } else {
-        printf("\nMusic is off!\n");
-        bt_player_set_play_sync(default_player);
-    }
-
-    error = NULL;
-
-    if (g_dbus_proxy_call_sync(default_player,
-                                "Next",
-                                NULL,
-                                G_DBUS_CALL_FLAGS_NONE,
-                                -1,
-                                NULL,
-                                &error) == NULL)
-        {
-        g_printerr("%s\n", error->message);
-        // return false;
-    } else {
-        printf("\nSuccess Next\n");
-    }
-
-    printf("\nthe end\n");
-
-    ////////////////////////////// testing END //////////////////
-
-
-    g_signal_connect(manager,
-                     "notify::name-owner",
-                     G_CALLBACK(on_notify_name_owner),
-                     NULL);
-    g_signal_connect(manager,
-                     "object-added",
-                     G_CALLBACK(on_object_added),
-                     NULL);
-    g_signal_connect(manager,
-                     "object-removed",
-                     G_CALLBACK(on_object_removed),
-                     NULL);
-    g_signal_connect(manager,
-                     "interface-proxy-properties-changed",
-                     G_CALLBACK(on_property_changed),
-                     NULL);
-
-    g_main_loop_run(main_loop);
-
-out:
-    if (manager != NULL)
-        g_object_unref(manager);
-
-    if (main_loop != NULL)
-        g_main_loop_unref(main_loop);
-
-    g_dbus_connection_close_sync(dbus_conn, NULL, NULL);
-    g_object_unref(dbus_conn);
-
-    return 0;
+    g_list_free_full(proxy_list, g_object_unref);
 }

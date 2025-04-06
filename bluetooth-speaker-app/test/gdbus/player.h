@@ -118,7 +118,7 @@ typedef enum
  * the retval argument.
  *
  * Returns true if the value was successfully retrieved, false otherwise.
- * 
+ *
  * It is not recommended to use this function to continuously poll a property.
  * A more efficient scheme is to use this function only to get the initial
  * value of the property, and use the callback mechanism
@@ -139,6 +139,31 @@ bool bt_player_set_property(bt_player_prop_e property, void *arg);
 /**
  * Function signature for a property change callback.
  * Used with bt_player_set_property_changed_cb
+ *
+ * Example callback for playback status:
+
+void on_playback_status_change(const void *changed_val, void *user_data)
+{
+    (void)user_data;
+
+    const bt_player_status_e *new_status = changed_val;
+
+    switch(new_status)
+    {
+    case BT_PLAYER_STATUS_STOPPED:
+        printf("\n");
+        break;
+    case BT_PLAYER_STATUS_PLAYING:
+        printf("\n");
+        break;
+    case BT_PLAYER_STATUS_PAUSED:
+        printf("\n");
+        break;
+    default:
+        break;
+    }
+}
+
  */
 typedef void (*bt_player_prop_cb)(const void *changed_val, void *user_data);
 
