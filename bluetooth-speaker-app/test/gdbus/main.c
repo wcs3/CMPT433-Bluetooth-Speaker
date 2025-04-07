@@ -35,7 +35,8 @@ void on_position_change(const void *val, void *user_data)
     const uint32_t *new_pos = val;
     uint32_t pos_min = (*new_pos / 1000) / 60;
     uint32_t pos_sec = (*new_pos / 1000) % 60;
-    g_print("\nposition changed callback: %u:%02u\n\n", pos_min, pos_sec);
+    uint32_t pos_ms = (*new_pos / 100) % 10;
+    g_print("\nposition changed callback: %u:%02u.%u\n\n", pos_min, pos_sec, pos_ms);
 }
 
 int main()

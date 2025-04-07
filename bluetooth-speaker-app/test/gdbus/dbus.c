@@ -92,7 +92,9 @@ void dbus_cleanup()
 
     g_object_unref(manager);
 
+    pthread_mutex_lock(&watchers_list_mtx);
     g_list_free_full(watchers_list, g_free);
+    pthread_mutex_unlock(&watchers_list_mtx);
 }
 
 static void *dbus_routine(void *arg)
@@ -124,18 +126,22 @@ dbus_proxy_watch_t *dbus_add_proxy_watch(dbus_proxy_watch_filter_cb filter_cb,
     if (watch->added_cb)
         preload_watcher(watch);
 
+    pthread_mutex_lock(&watchers_list_mtx);
     watchers_list = g_list_append(watchers_list, watch);
+    pthread_mutex_unlock(&watchers_list_mtx);
 
     return watch;
 }
 
 void dbus_remove_proxy_watch(dbus_proxy_watch_t *watch)
 {
+    pthread_mutex_lock(&watchers_list_mtx);
     if (g_list_find(watchers_list, watch))
     {
         watchers_list = g_list_remove(watchers_list, watch);
         g_free(watch);
     }
+    pthread_mutex_unlock(&watchers_list_mtx);
 }
 
 GVariant *dbus_proxy_get_property(GDBusProxy *proxy,
@@ -235,6 +241,7 @@ static void on_object_added(GDBusObjectManager *manager,
     {
         GDBusProxy *proxy = l->data;
 
+        pthread_mutex_lock(&watchers_list_mtx);
         for (GList *ll = watchers_list; ll; ll = ll->next)
         {
             dbus_proxy_watch_t *watch = ll->data;
@@ -245,6 +252,7 @@ static void on_object_added(GDBusObjectManager *manager,
                 watch->added_cb(proxy);
             }
         }
+        pthread_mutex_unlock(&watchers_list_mtx);
     }
     g_list_free_full(proxy_list, g_object_unref);
 }
@@ -262,12 +270,14 @@ static void on_object_removed(GDBusObjectManager *manager,
     {
         GDBusProxy *proxy = iter->data;
 
+        pthread_mutex_lock(&watchers_list_mtx);
         for (GList *iter2 = watchers_list; iter2; iter2 = iter2->next)
         {
             dbus_proxy_watch_t *watch = iter2->data;
             if (watch->filter(proxy) && watch->removed_cb)
                 watch->removed_cb(proxy);
         }
+        pthread_mutex_unlock(&watchers_list_mtx);
     }
 
     g_list_free_full(proxy_list, g_object_unref);
