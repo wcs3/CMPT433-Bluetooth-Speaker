@@ -23,8 +23,8 @@ static struct
     GDBusProxy *transport_proxy;
     gulong player_handler_id;
     gulong transport_handler_id;
+    pthread_mutex_t proxy_mtx;
 
-    cmd_cb_data_t cmd_cb_data[BT_PLAYER_CMD_cnt];
     prop_cb_data_t prop_cb_data[BT_PLAYER_PROP_cnt];
 } data = {0};
 
@@ -63,6 +63,7 @@ typedef struct
     gchar *prop_name;
     void *prop_val;
     bool (*update_val_fn)(GVariant *);
+    pthread_mutex_t mtx;
 } prop_entry_t;
 
 static bool prop_update_status(GVariant *val);
@@ -72,42 +73,48 @@ static bool prop_update_position(GVariant *val);
 static bool prop_update_track(GVariant *val);
 static bool prop_update_volume(GVariant *val);
 
-static const prop_entry_t prop_entries[BT_PLAYER_PROP_cnt] = {
+static prop_entry_t prop_entries[BT_PLAYER_PROP_cnt] = {
     [BT_PLAYER_PROP_PLAYBACK_STATUS] = {
         .proxy = &data.player_proxy,
         .prop_name = "Status",
         .prop_val = &props.status,
         .update_val_fn = prop_update_status,
+        .mtx = PTHREAD_MUTEX_INITIALIZER,
     },
     [BT_PLAYER_PROP_SHUFFLE_MODE] = {
         .proxy = &data.player_proxy,
         .prop_name = "Shuffle",
         .prop_val = &props.shuffle,
         .update_val_fn = prop_update_shuffle,
+        .mtx = PTHREAD_MUTEX_INITIALIZER,
     },
     [BT_PLAYER_PROP_REPEAT_MODE] = {
         .proxy = &data.player_proxy,
         .prop_name = "Repeat",
         .prop_val = &props.repeat,
         .update_val_fn = prop_update_repeat,
+        .mtx = PTHREAD_MUTEX_INITIALIZER,
     },
     [BT_PLAYER_PROP_PLAYBACK_POSITION] = {
         .proxy = &data.player_proxy,
         .prop_name = "Position",
         .prop_val = &props.position,
         .update_val_fn = prop_update_position,
+        .mtx = PTHREAD_MUTEX_INITIALIZER,
     },
     [BT_PLAYER_PROP_TRACK] = {
         .proxy = &data.player_proxy,
         .prop_name = "Track",
         .prop_val = &props.track_info,
         .update_val_fn = prop_update_track,
+        .mtx = PTHREAD_MUTEX_INITIALIZER,
     },
     [BT_PLAYER_PROP_VOLUME] = {
         .proxy = &data.transport_proxy,
         .prop_name = "Volume",
         .prop_val = &props.volume,
         .update_val_fn = prop_update_volume,
+        .mtx = PTHREAD_MUTEX_INITIALIZER,
     },
 };
 
@@ -120,33 +127,50 @@ static void proxy_removed_cb(GDBusProxy *removed_proxy);
 
 void bt_player_init()
 {
+    pthread_mutex_init(&data.proxy_mtx, NULL);
     data.proxy_watch = dbus_add_proxy_watch(proxy_filter, proxy_added_cb, proxy_removed_cb);
 }
 
 void bt_player_cleanup()
 {
     dbus_remove_proxy_watch(data.proxy_watch);
+    g_free(props.track_info.title);
+    g_free(props.track_info.artist);
+    g_free(props.track_info.album);
+    g_free(props.track_info.genre);
 }
 
-bool bt_player_device_available();
+bool bt_player_is_connected()
+{
+    return data.player_proxy;
+}
 
 bool bt_player_send_command(bt_player_cmd_e command)
 {
     GError *error = NULL;
+    bool ret = true;
 
-    if (g_dbus_proxy_call_sync(data.player_proxy,
-                               COMMAND_STRINGS[command],
-                               NULL,
-                               G_DBUS_CALL_FLAGS_NONE,
-                               -1,
-                               NULL,
-                               &error) == NULL)
+    pthread_mutex_lock(&data.proxy_mtx);
+
+    if (!data.player_proxy)
+    {
+        ret = false;
+    }
+    else if (g_dbus_proxy_call_sync(data.player_proxy,
+                                    COMMAND_STRINGS[command],
+                                    NULL,
+                                    G_DBUS_CALL_FLAGS_NONE,
+                                    -1,
+                                    NULL,
+                                    &error) == NULL)
     {
         g_printerr("%s\n", error->message);
-        return false;
+        ret = false;
     }
 
-    return true;
+    pthread_mutex_unlock(&data.proxy_mtx);
+
+    return ret;
 }
 
 static void send_command_async_done(GObject *source_object,
@@ -163,16 +187,27 @@ static void send_command_async_done(GObject *source_object,
     if (!success)
         g_printerr("%s\n", error->message);
 
-    if (cb_data->cb)
+    if (cb_data)
+    {
         cb_data->cb(success, cb_data->user_data);
+        g_free(cb_data);
+    }
 }
 
 void bt_player_send_command_async(bt_player_cmd_e command,
                                   bt_player_cmd_cb callback,
                                   void *user_data)
 {
-    data.cmd_cb_data[command].cb = callback;
-    data.cmd_cb_data[command].user_data = user_data;
+    cmd_cb_data_t *cb_data = NULL;
+
+    if (callback)
+    {
+        cb_data = g_new0(cmd_cb_data_t, 1);
+        cb_data->cb = callback;
+        cb_data->user_data = user_data;
+    }
+
+    pthread_mutex_lock(&data.proxy_mtx);
 
     g_dbus_proxy_call(data.player_proxy,
                       COMMAND_STRINGS[command],
@@ -181,32 +216,39 @@ void bt_player_send_command_async(bt_player_cmd_e command,
                       -1,
                       NULL,
                       send_command_async_done,
-                      &data.cmd_cb_data[command]);
+                      cb_data);
+
+    pthread_mutex_unlock(&data.proxy_mtx);
 }
 
 bool bt_player_get_property(bt_player_prop_e property, void *retval)
 {
-    const prop_entry_t *entry;
-    GError *error;
+    prop_entry_t *entry;
     GVariant *val;
+    bool ret;
 
     entry = &prop_entries[property];
-    error = NULL;
 
+    pthread_mutex_lock(&data.proxy_mtx);
     if (!*entry->proxy)
     {
         g_printerr("Proxy for property '%s' is unavailable\n",
                    entry->prop_name);
-        return false;
+        ret = false;
     }
-
-    if (!(val = dbus_proxy_get_property(*entry->proxy, entry->prop_name, &error)))
+    else if (!(val = g_dbus_proxy_get_cached_property(*entry->proxy, entry->prop_name)))
     {
-        g_printerr("%s\n", error->message);
-        return false;
+        g_printerr("Property '%s' is unavailable\n", entry->prop_name);
+        ret = false;
     }
+    pthread_mutex_unlock(&data.proxy_mtx);
 
+    if (!ret)
+        return ret;
+
+    pthread_mutex_lock(&entry->mtx);
     entry->update_val_fn(val);
+    g_variant_unref(val);
 
     switch (property)
     {
@@ -223,16 +265,25 @@ bool bt_player_get_property(bt_player_prop_e property, void *retval)
         *(uint32_t *)retval = props.position;
         break;
     case BT_PLAYER_PROP_TRACK:
-        *(bt_player_track_info_t *)retval = props.track_info;
+        bt_player_track_info_t *track_ret = retval;
+        track_ret->title = g_strdup(props.track_info.title);
+        track_ret->artist = g_strdup(props.track_info.artist);
+        track_ret->album = g_strdup(props.track_info.album);
+        track_ret->genre = g_strdup(props.track_info.genre);
+        track_ret->track_count = props.track_info.track_count;
+        track_ret->track_number = props.track_info.track_number;
+        track_ret->duration = props.track_info.duration;
         break;
     case BT_PLAYER_PROP_VOLUME:
         *(uint8_t *)retval = props.volume;
         break;
     default:
-        break;
+        ret = false;
     }
 
-    return false;
+    pthread_mutex_unlock(&entry->mtx);
+
+    return ret;
 }
 
 bool bt_player_set_property(bt_player_prop_e property, void *arg)
@@ -240,6 +291,7 @@ bool bt_player_set_property(bt_player_prop_e property, void *arg)
     const prop_entry_t *prop_entry;
     GVariant *value;
     GError *error;
+    bool ret;
 
     prop_entry = &prop_entries[property];
 
@@ -259,36 +311,32 @@ bool bt_player_set_property(bt_player_prop_e property, void *arg)
     default:
         g_printerr("Property '%s' is not writeable\n",
                    prop_entry->prop_name);
-        break;
+        return false;
     }
 
+    ret = true;
+    error = NULL;
+    pthread_mutex_lock(&data.proxy_mtx);
     if (!*prop_entry->proxy)
     {
         g_printerr("Proxy for property '%s' is unavailable\n",
                    prop_entry->prop_name);
-        return false;
+        ret = false;
     }
-
-    error = NULL;
-    if (!dbus_proxy_get_property(*prop_entry->proxy,
-                                 prop_entry->prop_name,
-                                 &error))
+    else if (!dbus_proxy_get_property(*prop_entry->proxy,
+                                      prop_entry->prop_name,
+                                      &error) ||
+             !dbus_proxy_set_property(*prop_entry->proxy,
+                                      prop_entry->prop_name,
+                                      value,
+                                      &error))
     {
         g_printerr("%s\n", error->message);
-        return false;
+        ret = false;
     }
+    pthread_mutex_unlock(&data.proxy_mtx);
 
-    error = NULL;
-    if (!dbus_proxy_set_property(*prop_entry->proxy,
-                                 prop_entry->prop_name,
-                                 value,
-                                 &error))
-    {
-        g_printerr("%s\n", error->message);
-        return false;
-    }
-
-    return true;
+    return ret;
 }
 
 void bt_player_set_property_changed_cb(bt_player_prop_e property,
@@ -313,7 +361,7 @@ static void proxy_changed_cb(GDBusProxy *proxy,
     (void)proxy;
     (void)invalidated_properties;
 
-    if (!data.player_proxy || g_variant_n_children(changed_properties) == 0)
+    if (g_variant_n_children(changed_properties) == 0)
         return;
 
     GVariantIter *iter;
@@ -324,17 +372,19 @@ static void proxy_changed_cb(GDBusProxy *proxy,
 
     while (g_variant_iter_loop(iter, "{&sv}", &key, &value))
     {
-        g_print("*%s changed*\n", key);
-        size_t prop_id;
-        for (prop_id = 0; prop_id < BT_PLAYER_PROP_cnt; prop_id++)
+        for (size_t prop_id = 0; prop_id < BT_PLAYER_PROP_cnt; prop_id++)
         {
             if (g_str_equal(prop_entries[prop_id].prop_name, key))
             {
-                const prop_entry_t *entry = &prop_entries[prop_id];
+                prop_entry_t *entry = &prop_entries[prop_id];
                 prop_cb_data_t *cb_data = &data.prop_cb_data[prop_id];
+
+                pthread_mutex_lock(&entry->mtx);
 
                 if (entry->update_val_fn(value) && cb_data->cb)
                     cb_data->cb(entry->prop_val, cb_data->user_data);
+
+                pthread_mutex_unlock(&entry->mtx);
 
                 break;
             }
@@ -351,6 +401,7 @@ static void proxy_added_cb(GDBusProxy *new_proxy)
 
     iface_name = g_dbus_proxy_get_interface_name(new_proxy);
 
+    pthread_mutex_lock(&data.proxy_mtx);
     if (g_str_equal(iface_name, BLUEZ_MEDIA_PLAYER_INTERFACE))
     {
         g_print("player connected\n");
@@ -365,6 +416,7 @@ static void proxy_added_cb(GDBusProxy *new_proxy)
     }
     else
     {
+        pthread_mutex_unlock(&data.proxy_mtx);
         return;
     }
 
@@ -372,17 +424,38 @@ static void proxy_added_cb(GDBusProxy *new_proxy)
     {
         g_signal_handler_disconnect(*proxy,
                                     *handler_id);
-        g_object_unref(data.player_proxy);
+        g_object_unref(*proxy);
     }
+
     *proxy = new_proxy;
+
+    for (size_t i = 0; i < BT_PLAYER_PROP_cnt; i++)
+    {
+        prop_entry_t *entry = &prop_entries[i];
+        if (*entry->proxy == *proxy)
+        {
+            GVariant *prop_val;
+
+            if ((prop_val = g_dbus_proxy_get_cached_property(*entry->proxy, entry->prop_name)))
+            {
+                pthread_mutex_lock(&entry->mtx);
+                entry->update_val_fn(prop_val);
+                pthread_mutex_unlock(&entry->mtx);
+                g_variant_unref(prop_val);
+            }
+        }
+    }
+
     *handler_id = g_signal_connect(*proxy,
                                    "g-properties-changed",
                                    G_CALLBACK(proxy_changed_cb),
                                    NULL);
+    pthread_mutex_unlock(&data.proxy_mtx);
 }
 
 static void proxy_removed_cb(GDBusProxy *removed_proxy)
 {
+    pthread_mutex_lock(&data.proxy_mtx);
     if (data.player_proxy == removed_proxy)
     {
         g_signal_handler_disconnect(data.player_proxy,
@@ -397,6 +470,7 @@ static void proxy_removed_cb(GDBusProxy *removed_proxy)
         g_object_unref(data.transport_proxy);
         data.player_proxy = NULL;
     }
+    pthread_mutex_unlock(&data.proxy_mtx);
 }
 
 // Update status property only if new val different from old val. Return true if changed
@@ -483,47 +557,36 @@ static bool track_equal(const bt_player_track_info_t *t1, const bt_player_track_
 // Update track property only if new val different from old val. Return true if changed
 static bool prop_update_track(GVariant *val)
 {
-    GVariantIter *iter;
-    const gchar *key;
-    GVariant *value;
+    GVariantDict dict;
 
-    g_variant_get(val, "a{sv}", &iter);
     bt_player_track_info_t new_track = {0};
 
-    while (g_variant_iter_loop(iter, "{&sv}", &key, &value))
-    {
-        if (g_str_equal(key, "Title"))
-            new_track.title = g_variant_dup_string(value, NULL);
-        else if (g_str_equal(key, "Artist"))
-            new_track.artist = g_variant_dup_string(value, NULL);
-        else if (g_str_equal(key, "Album"))
-            new_track.album = g_variant_dup_string(value, NULL);
-        else if (g_str_equal(key, "Genre"))
-            new_track.genre = g_variant_dup_string(value, NULL);
-        else if (g_str_equal(key, "NumberOfTracks"))
-            new_track.track_count = g_variant_get_uint32(value);
-        else if (g_str_equal(key, "TrackNumber"))
-            new_track.track_number = g_variant_get_uint32(value);
-        else if (g_str_equal(key, "Duration"))
-            new_track.duration = g_variant_get_uint32(value);
-    }
+    g_variant_dict_init(&dict, val);
+    g_variant_dict_lookup(&dict, "Title", "&s", &new_track.title);
+    g_variant_dict_lookup(&dict, "Artist", "&s", &new_track.artist);
+    g_variant_dict_lookup(&dict, "Album", "&s", &new_track.album);
+    g_variant_dict_lookup(&dict, "Genre", "&s", &new_track.genre);
+    g_variant_dict_lookup(&dict, "NumberOfTracks", "u", &new_track.track_count);
+    g_variant_dict_lookup(&dict, "TrackNumber", "u", &new_track.track_number);
+    g_variant_dict_lookup(&dict, "Duration", "u", &new_track.duration);
 
     if (track_equal(&new_track, &props.track_info))
-    {
-        g_free(new_track.title);
-        g_free(new_track.artist);
-        g_free(new_track.album);
-        g_free(new_track.genre);
-
         return false;
-    }
 
     g_free(props.track_info.title);
     g_free(props.track_info.artist);
     g_free(props.track_info.album);
     g_free(props.track_info.genre);
 
-    props.track_info = new_track;
+    props.track_info = (bt_player_track_info_t){
+        .title = new_track.title ? g_strdup(new_track.title) : NULL,
+        .artist = new_track.artist ? g_strdup(new_track.artist) : NULL,
+        .album = new_track.album ? g_strdup(new_track.album) : NULL,
+        .genre = new_track.genre ? g_strdup(new_track.genre) : NULL,
+        .track_count = new_track.track_count,
+        .track_number = new_track.track_number,
+        .duration = new_track.duration,
+    };
 
     return true;
 }
@@ -540,40 +603,46 @@ static bool prop_update_volume(GVariant *val)
     return true;
 }
 
-void bt_player_set_pause_sync(GDBusProxy *player_proxy){
+void bt_player_set_pause_sync(GDBusProxy *player_proxy)
+{
     GError *error = NULL;
 
     if (g_dbus_proxy_call_sync(player_proxy,
-                            "Pause",
-                            NULL,
-                            G_DBUS_CALL_FLAGS_NONE,
-                            -1,
-                            NULL,
-                            &error) == NULL)
+                               "Pause",
+                               NULL,
+                               G_DBUS_CALL_FLAGS_NONE,
+                               -1,
+                               NULL,
+                               &error) == NULL)
     {
         g_printerr("%s\n", error->message);
         // return false;
-    } else {
+    }
+    else
+    {
         g_printerr("\nSuccess pause\n");
     }
 }
 
-void bt_player_set_play_sync(GDBusProxy *player_proxy){
+void bt_player_set_play_sync(GDBusProxy *player_proxy)
+{
     GError *error = NULL;
 
-        if (g_dbus_proxy_call_sync(player_proxy,
-                                    "Play",
-                                    NULL,
-                                    G_DBUS_CALL_FLAGS_NONE,
-                                    -1,
-                                    NULL,
-                                    &error) == NULL)
-        {
+    if (g_dbus_proxy_call_sync(player_proxy,
+                               "Play",
+                               NULL,
+                               G_DBUS_CALL_FLAGS_NONE,
+                               -1,
+                               NULL,
+                               &error) == NULL)
+    {
         g_printerr("%s\n", error->message);
         // return false;
-        } else {
-            g_printerr("\nSuccess play\n");
-        }
+    }
+    else
+    {
+        g_printerr("\nSuccess play\n");
+    }
 }
 
 #include <string.h>
@@ -586,7 +655,8 @@ char current_title[MAX_STRING_LENGTH];
 char current_album[MAX_STRING_LENGTH];
 char current_track_status[MAX_STRING_LENGTH];
 
-void print_track_data(GDBusProxy *player_proxy) {
+void print_track_data(GDBusProxy *player_proxy)
+{
 
     GVariant *property = g_dbus_proxy_get_cached_property(player_proxy, "Track");
     gchar *str = g_variant_print(property, FALSE);
@@ -601,17 +671,22 @@ void print_track_data(GDBusProxy *player_proxy) {
 
     // Parsing 'Title'
     gchar *title_start = strstr(str, "'Title': <'");
-    if (title_start != NULL) {
-        title_start += 11;  // Skip "'Title': <'"
+    if (title_start != NULL)
+    {
+        title_start += 11; // Skip "'Title': <'"
         gchar *title_end = strstr(title_start, "'>");
-        if (title_end != NULL) {
+        if (title_end != NULL)
+        {
             gint title_length = title_end - title_start;
             title = g_strndup(title_start, title_length);
 
-            if (title_length < MAX_STRING_LENGTH) {
+            if (title_length < MAX_STRING_LENGTH)
+            {
                 strncpy(current_title, title_start, title_length);
                 current_title[title_length] = '\0';
-            } else {
+            }
+            else
+            {
                 // If string is too long, just copy the maximum allowed length
                 strncpy(current_title, title_start, MAX_STRING_LENGTH - 1);
                 current_title[MAX_STRING_LENGTH - 1] = '\0';
@@ -621,53 +696,64 @@ void print_track_data(GDBusProxy *player_proxy) {
 
     // Parsing 'TrackNumber'
     gchar *track_num_start = strstr(str, "'TrackNumber': <");
-    if (track_num_start != NULL) {
+    if (track_num_start != NULL)
+    {
         track_num_start += 23;
         gchar *track_num_end = strstr(track_num_start, ">");
-        if (track_num_end != NULL) {
+        if (track_num_end != NULL)
+        {
             gint track_num_length = track_num_end - track_num_start;
             track_number = g_strndup(track_num_start, track_num_length);
         }
     }
-    int tarck_num_test = (int) g_ascii_strtoull(track_number, NULL, 10);
+    int tarck_num_test = (int)g_ascii_strtoull(track_number, NULL, 10);
 
     // Parsing 'NumberOfTracks'
     gchar *num_tracks_start = strstr(str, "'NumberOfTracks': <");
-    if (num_tracks_start != NULL) {
+    if (num_tracks_start != NULL)
+    {
         num_tracks_start += 26;
         gchar *num_tracks_end = strstr(num_tracks_start, ">");
-        if (num_tracks_end != NULL) {
+        if (num_tracks_end != NULL)
+        {
             gint num_tracks_length = num_tracks_end - num_tracks_start;
             num_tracks = g_strndup(num_tracks_start, num_tracks_length);
         }
     }
-    int num_tracks_test = (int) g_ascii_strtoull(num_tracks, NULL, 10);
+    int num_tracks_test = (int)g_ascii_strtoull(num_tracks, NULL, 10);
 
     // Parsing 'Duration'
     gchar *duration_start = strstr(str, "'Duration': <uint32 ");
-    if (duration_start != NULL) {
-        duration_start += 19; 
+    if (duration_start != NULL)
+    {
+        duration_start += 19;
         gchar *duration_end = strstr(duration_start, ">");
-        if (duration_end != NULL) {
+        if (duration_end != NULL)
+        {
             gint duration_length = duration_end - duration_start;
             duration = g_strndup(duration_start, duration_length);
         }
     }
-    int dur_test = (int) g_ascii_strtoull(duration, NULL, 10);
+    int dur_test = (int)g_ascii_strtoull(duration, NULL, 10);
 
     // Parsing 'Album'
     gchar *album_start = strstr(str, "'Album': <'");
-    if (album_start != NULL) {
+    if (album_start != NULL)
+    {
         album_start += 11;
         gchar *album_end = strstr(album_start, "'>");
-        if (album_end != NULL) {
+        if (album_end != NULL)
+        {
             gint album_length = album_end - album_start;
             album = g_strndup(album_start, album_length);
 
-            if (album_length < MAX_STRING_LENGTH) {
+            if (album_length < MAX_STRING_LENGTH)
+            {
                 strncpy(current_album, album_start, album_length);
                 current_album[album_length] = '\0';
-            } else {
+            }
+            else
+            {
                 strncpy(current_album, album_start, MAX_STRING_LENGTH - 1);
                 current_album[MAX_STRING_LENGTH - 1] = '\0';
             }
@@ -676,17 +762,22 @@ void print_track_data(GDBusProxy *player_proxy) {
 
     // Parsing 'Artist'
     gchar *artist_start = strstr(str, "'Artist': <'");
-    if (artist_start != NULL) {
+    if (artist_start != NULL)
+    {
         artist_start += 12;
         gchar *artist_end = strstr(artist_start, "'>");
-        if (artist_end != NULL) {
+        if (artist_end != NULL)
+        {
             gint artist_length = artist_end - artist_start;
             artist = g_strndup(artist_start, artist_length);
 
-            if (artist_length < MAX_STRING_LENGTH) {
+            if (artist_length < MAX_STRING_LENGTH)
+            {
                 strncpy(current_artist, artist_start, artist_length);
                 current_artist[artist_length] = '\0';
-            } else {
+            }
+            else
+            {
                 strncpy(current_artist, artist_start, MAX_STRING_LENGTH - 1);
                 current_artist[MAX_STRING_LENGTH - 1] = '\0';
             }
@@ -697,17 +788,22 @@ void print_track_data(GDBusProxy *player_proxy) {
     gchar *str_other = g_variant_print(property, FALSE);
 
     gchar *status_start = strstr(str_other, "'");
-    if (status_start != NULL) {
+    if (status_start != NULL)
+    {
         status_start += 1;
         gchar *status_end = strstr(status_start, "'");
-        if (status_end != NULL) {
+        if (status_end != NULL)
+        {
             gint status_length = status_end - status_start;
             status = g_strndup(status_start, status_length);
 
-            if (status_length < MAX_STRING_LENGTH) {
+            if (status_length < MAX_STRING_LENGTH)
+            {
                 strncpy(current_track_status, status_start, status_length);
                 current_track_status[status_length] = '\0';
-            } else {
+            }
+            else
+            {
                 strncpy(current_track_status, status_start, MAX_STRING_LENGTH - 1);
                 current_track_status[MAX_STRING_LENGTH - 1] = '\0';
             }
@@ -716,32 +812,47 @@ void print_track_data(GDBusProxy *player_proxy) {
 
     property = g_dbus_proxy_get_cached_property(player_proxy, "Position");
     str_other = g_variant_print(property, FALSE);
-    int curr_pos_test = (int) g_ascii_strtoull(str_other, NULL, 10);
+    int curr_pos_test = (int)g_ascii_strtoull(str_other, NULL, 10);
 
-    
-    if (current_track_status[0] != '\0') {
+    if (current_track_status[0] != '\0')
+    {
         printf("Status: '%s'\n", current_track_status);
-    } else {
-        printf("Artist: Unknown\n"); }
-    if (current_title[0] != '\0') {
+    }
+    else
+    {
+        printf("Artist: Unknown\n");
+    }
+    if (current_title[0] != '\0')
+    {
         printf("Artist: '%s'\n", current_title);
-    } else {
-        printf("Artist: Unknown\n"); }
+    }
+    else
+    {
+        printf("Artist: Unknown\n");
+    }
 
     printf("Track Number: %d\n", tarck_num_test);
     printf("Number of Tracks: %d\n", num_tracks_test);
     printf("Duration: %d\n", dur_test ? dur_test : -1);
     printf("Current Position: %d\n", curr_pos_test ? curr_pos_test : -1);
 
-    if (current_album[0] != '\0') {
+    if (current_album[0] != '\0')
+    {
         printf("Album: '%s'\n", current_album);
-    } else {
-        printf("Album: Unknown\n"); }
-    if (current_artist[0] != '\0') {
+    }
+    else
+    {
+        printf("Album: Unknown\n");
+    }
+    if (current_artist[0] != '\0')
+    {
         printf("Artist: '%s'\n", current_artist);
-    } else {
-        printf("Artist: Unknown\n"); }
-    
+    }
+    else
+    {
+        printf("Artist: Unknown\n");
+    }
+
     // Clean up memory
     g_free(str);
     g_free(title);
@@ -754,10 +865,14 @@ void print_track_data(GDBusProxy *player_proxy) {
     g_free(str_other);
 }
 
-bool is_paused_status(){
-    if(strcmp(current_track_status, "paused") == 0){
+bool is_paused_status()
+{
+    if (strcmp(current_track_status, "paused") == 0)
+    {
         return true;
-    } else {
+    }
+    else
+    {
         return false;
     }
 }

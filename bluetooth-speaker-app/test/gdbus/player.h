@@ -51,7 +51,7 @@ typedef enum
 void bt_player_init();
 void bt_player_cleanup();
 
-bool bt_player_device_available();
+bool bt_player_is_connected();
 
 typedef enum
 {
