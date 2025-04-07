@@ -1,5 +1,5 @@
-#include "dbus.h"
-#include "player.h"
+#include "bt_dbus.h"
+#include "bt_player.h"
 
 static bool done = false;
 
