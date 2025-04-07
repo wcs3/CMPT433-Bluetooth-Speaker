@@ -22,7 +22,7 @@
 #include "app/user_interface.h"
 #include "app/bt_agent.h"
 
-static const int NUM_APP_THREADS = 0;
+static const int NUM_APP_THREADS = 1;
 
 void ctrl_c_handler(int signum __attribute__((unused))) {
     init_set_shutdown();

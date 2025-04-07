@@ -1,4 +1,4 @@
-add_executable(gdbus_test dbus.c player.c main.c)
+add_executable(gdbus_test bt_dbus.c bt_player.c main.c)
 
 get_target_property(target_options gdbus_test COMPILE_OPTIONS)
 # list(REMOVE_ITEM target_options "-Werror")

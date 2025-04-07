@@ -1,5 +1,5 @@
-#include "player.h"
-#include "dbus.h"
+#include "bt_player.h"
+#include "bt_dbus.h"
 
 #define BLUEZ_MEDIA_PLAYER_INTERFACE "org.bluez.MediaPlayer1"
 #define BLUEZ_MEDIA_TRANSPORT_INTERFACE "org.bluez.MediaTransport1"
