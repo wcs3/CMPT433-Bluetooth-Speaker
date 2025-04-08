@@ -15,31 +15,31 @@ typedef struct {
 
 // assume the char* returns of all of these are immutable c strings
 // if nothing is set just return some sensible defaults (ie empty string, 00:00 time, 0 volume)
-char* get_track_title();
+char* app_model_get_track_title();
 
-char* get_album_title();
+char* app_model_get_album_title();
 
-char* get_genre();
+char* app_model_get_genre();
 
-char* get_artist();
+char* app_model_get_artist();
 
 // return a number from 0 to 100
-int get_volume();
+int app_model_get_volume();
 
-app_state_playback get_playback();
+app_state_playback app_model_get_playback();
 
 // commands the board can send, these are going to be needed for both voice commands and controls on the board so they should be thread safe
 
-int play();
+int app_model_play();
 
-int pause();
+int app_model_pause();
 
-int next();
+int app_model_next();
 
-int previous();
+int app_model_previous();
 
-int shuffle();
+int app_model_shuffle();
 
-int repeat();
+int app_model_repeat();
 
 #endif

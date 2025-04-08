@@ -10,63 +10,63 @@ void app_model_cleanup()
     return;
 }
 
-char* get_track_title() 
+char* app_model_get_track_title() 
 {
     return "";
 }
 
-char* get_album_title() 
+char* app_model_get_album_title() 
 {
     return "";
 }
 
-char* get_genre() 
+char* app_model_get_genre() 
 {
     return "";
 }
 
-char* get_artist() 
+char* app_model_get_artist() 
 {
     return "";
 }
 
-int get_volume() 
+int app_model_get_volume() 
 {
     return 0;
 }
 
-app_state_playback get_playback() 
+app_state_playback app_model_get_playback() 
 {
     app_state_playback state = {0, 0};
     return state;
 }
 
-int play() 
+int app_model_play() 
 {
     return 0;
 }
 
-int pause() 
+int app_model_pause() 
 {
     return 0;
 }
 
-int next() 
+int app_model_next() 
 {
     return 0;
 }
 
-int previous() 
+int app_model_previous() 
 {
     return 0;
 }
 
-int shuffle() 
+int app_model_shuffle() 
 {
     return 0;
 }
 
-int repeat() 
+int app_model_repeat() 
 {
     return 0;
 }
