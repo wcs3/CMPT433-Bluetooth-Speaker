@@ -5,6 +5,7 @@
 #include "hal/led_pwm.h"
 #include "hal/draw_stuff.h"
 #include "hal/period_timer.h"
+#include "ui/load_image_assets.h"
 #include <stdio.h>
 #include <pthread.h>
 #include <stdbool.h>
@@ -17,12 +18,11 @@ static bool num_confirms_0 = false;
 int init_start(int num_confirms)
 {
     int code;
-    Period_init();
 
-    code = light_sensor_init();
+    code = load_image_assets_init();
     if(code) {
-        fprintf(stderr, "failed to init light sensor %d\n", code);
-        return 2;
+        fprintf(stderr, "init: failed to load image assets %d\n", code);
+        return 1;
     }
 
     code = rotary_encoder_init();
@@ -31,11 +31,6 @@ int init_start(int num_confirms)
         return 3;
     }
 
-    code = led_pwm_init();
-    if(code) {
-        fprintf(stderr, "failed to init pwm led %d\n", code);
-        return 4;
-    }
 
     draw_stuff_init();
     if(num_confirms > 0) {
@@ -84,14 +79,14 @@ void init_end(void)
     }
     
     draw_stuff_cleanup();
-    light_sensor_cleanup();
+
     rotary_encoder_cleanup();
-    led_pwm_cleanup();
-    Period_cleanup();
     if(!num_confirms_0) {
         code = pthread_barrier_destroy(&barrier);
         if(code) {
             fprintf(stderr, "failed to destroy barrier %d\n", code);
         }
     }
+
+    load_image_assets_cleanup();
 }

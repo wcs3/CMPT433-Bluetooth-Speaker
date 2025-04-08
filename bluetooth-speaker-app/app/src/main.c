@@ -18,7 +18,7 @@
 #include "app/server.h"
 #include "app/user_interface.h"
 
-static const int NUM_APP_THREADS = 2;
+static const int NUM_APP_THREADS = 1;
 
 void ctrl_c_handler(int signum __attribute__((unused))) {
     init_set_shutdown();
@@ -41,12 +41,12 @@ int main()
     }
 
     // functions that start other application threads
-    server_init();
+    // server_init();
     user_interface_init();
     
     init_end();
 
-    server_cleanup();
+    // server_cleanup();
     user_interface_cleanup();
     return 0;
 }
