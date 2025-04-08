@@ -5,6 +5,7 @@
 #include "hal/led_pwm.h"
 #include "hal/draw_stuff.h"
 #include "hal/period_timer.h"
+#include "hal/lg_gpio_samples_func.h"
 #include "ui/load_image_assets.h"
 #include <stdio.h>
 #include <pthread.h>
@@ -18,6 +19,12 @@ static bool num_confirms_0 = false;
 int init_start(int num_confirms)
 {
     int code;
+
+    code = lg_gpio_samples_func_init();
+    if(code) {
+        fprintf(stderr, "init: failed to init lg_gpio_samples_func %d\n", code);
+        return 0;
+    }
 
     code = load_image_assets_init();
     if(code) {
@@ -89,4 +96,6 @@ void init_end(void)
     }
 
     load_image_assets_cleanup();
+
+    lg_gpio_samples_func_cleanup();
 }

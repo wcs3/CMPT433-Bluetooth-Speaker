@@ -12,7 +12,7 @@ void draw_stuff_cleanup();
 
 // draw a message to screen. Supports \n. If the message is too long it gets cut off.
 void draw_stuff_update_screen(char* message);
-void draw_stuff_update_screen2(void);
+
 void draw_stuff_screen(Olivec_Canvas* img);
 void olivec_test();
 #endif

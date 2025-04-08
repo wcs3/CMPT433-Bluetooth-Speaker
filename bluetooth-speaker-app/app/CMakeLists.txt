@@ -7,6 +7,7 @@ add_executable(433-bluetooth-speaker ${MY_SOURCES})
 # Make use of the libraries
 target_link_libraries(433-bluetooth-speaker LINK_PRIVATE hal)
 target_link_libraries(433-bluetooth-speaker LINK_PRIVATE lcd)
+target_link_libraries(433-bluetooth-speaker LINK_PRIVATE ui)
 target_link_libraries(433-bluetooth-speaker LINK_PRIVATE lgpio)
 target_link_libraries(433-bluetooth-speaker LINK_PRIVATE Binc)
 

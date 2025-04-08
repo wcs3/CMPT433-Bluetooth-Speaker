@@ -1,4 +1,6 @@
 #include "app/app_model.h"
+#include <stdlib.h>
+#include <string.h>
 
 int app_model_init() 
 {
@@ -12,22 +14,30 @@ void app_model_cleanup()
 
 char* app_model_get_track_title() 
 {
-    return "";
+    char* res = malloc(64);
+    strncpy(res, "Title", 64);
+    return res;
 }
 
 char* app_model_get_album_title() 
 {
-    return "";
+    char* res = malloc(64);
+    strncpy(res, "Albumabcdefghijklmnopqrstuvwxyz", 64);
+    return res;
 }
 
 char* app_model_get_genre() 
 {
-    return "";
+    char* res = malloc(64);
+    strncpy(res, "Genre", 64);
+    return res;
 }
 
 char* app_model_get_artist() 
 {
-    return "";
+    char* res = malloc(64);
+    strncpy(res, "Artist", 64);
+    return res;
 }
 
 int app_model_get_volume() 
@@ -37,7 +47,7 @@ int app_model_get_volume()
 
 app_state_playback app_model_get_playback() 
 {
-    app_state_playback state = {0, 0};
+    app_state_playback state = {100, 200};
     return state;
 }
 
