@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <math.h>
 
 static pthread_t ui_thread;
 
@@ -25,53 +26,75 @@ static pthread_t ui_thread;
 //     dest[max_size] = '\0';
 // }
 
-void* run_ui(void* arg __attribute__((unused)))
+static void olivec_line_thick(Olivec_Canvas oc, int x1, int y1, int x2, int y2, int t, uint32_t color)
+{
+    int d_x = x2 - x1;
+    int d_y = y2 - y1;
+
+    double len = 2 * sqrt(d_x * d_x + d_y * d_y);
+
+    int ax = x1 + d_y * t / len;
+    int ay = y1 - d_x * t / len;
+    int bx = x1 - d_y * t / len;
+    int by = y1 + d_x * t / len;
+    int cx = x2 + d_y * t / len;
+    int cy = y2 - d_x * t / len;
+    int dx = x2 - d_y * t / len;
+    int dy = y2 + d_x * t / len;
+
+    olivec_triangle(oc, ax, ay, cx, cy, bx, by, color);
+    olivec_triangle(oc, dx, dy, bx, by, cx, cy, color);
+}
+
+bool cmd_errored = false;
+long cmd_errored_time = 0;
+
+void *run_ui(void *arg __attribute__((unused)))
 {
     int max_chars = LCD_WIDTH / LOAD_IMAGE_ASSETS_CHAR_WIDTH;
-    char* album_str_buf = malloc(sizeof(*album_str_buf) * (max_chars + 1));
-    char* track_str_buf = malloc(sizeof(*track_str_buf) * (max_chars + 1));
-    char* playback_str_buf = malloc(sizeof(*playback_str_buf) * (max_chars + 1));
-    char* artist_str_buf = malloc(sizeof(*artist_str_buf) * (max_chars + 1));
-    Olivec_Canvas* screen = image_loader_image_create(240, 240);
+    char *album_str_buf = malloc(sizeof(*album_str_buf) * (max_chars + 1));
+    char *track_str_buf = malloc(sizeof(*track_str_buf) * (max_chars + 1));
+    char *playback_str_buf = malloc(sizeof(*playback_str_buf) * (max_chars + 1));
+    char *artist_str_buf = malloc(sizeof(*artist_str_buf) * (max_chars + 1));
+    Olivec_Canvas *screen = image_loader_image_create(240, 240);
 
-    while(!init_get_shutdown()) {
-        char* album_temp = app_model_get_album_title();
-        char* track_temp = app_model_get_track_title();
-        char* track_artist = app_model_get_artist();
+    while (!init_get_shutdown())
+    {
+        char *album_temp = app_model_get_album_title();
+        char *track_temp = app_model_get_track_title();
+        char *track_artist = app_model_get_artist();
         app_state_playback playback = app_model_get_playback();
         int volume = app_model_get_volume();
         int shuffle = app_model_get_shuffle();
         int repeat = app_model_get_repeat();
         bool playing = app_model_is_playing();
 
-        // stop compiler from complaining about string getting cut off because we actually want that
-        #pragma GCC diagnostic push
-        #pragma GCC diagnostic ignored "-Wformat-truncation"
+// stop compiler from complaining about string getting cut off because we actually want that
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wformat-truncation"
 
         snprintf(album_str_buf, max_chars + 1, "%s", album_temp);
         snprintf(track_str_buf, max_chars + 1, "%s", track_temp);
         snprintf(artist_str_buf, max_chars + 1, "By: %s", track_artist);
-        snprintf(playback_str_buf, max_chars + 1, "%02d:%02d / %02d:%02d", 
-            playback.seconds_passed / 60, 
-            playback.seconds_passed % 60, 
-            playback.seconds_total / 60, 
-            playback.seconds_total % 60
-        );
+        snprintf(playback_str_buf, max_chars + 1, "%02d:%02d / %02d:%02d",
+                 playback.seconds_passed / 60,
+                 playback.seconds_passed % 60,
+                 playback.seconds_total / 60,
+                 playback.seconds_total % 60);
 
-        #pragma GCC diagnostic pop
-
+#pragma GCC diagnostic pop
 
         free(album_temp);
         free(track_temp);
         free(track_artist);
-        
-        Olivec_Canvas* album_txt = draw_ui_text(album_str_buf);
-        Olivec_Canvas* track_txt = draw_ui_text(track_str_buf);
-        Olivec_Canvas* artist_txt = draw_ui_text(artist_str_buf);
-        Olivec_Canvas* time_txt = draw_ui_text(playback_str_buf);
-        Olivec_Canvas* time_bar = draw_ui_progress_bar(120, 5, playback.seconds_passed / (float) playback.seconds_total, OLIVEC_RGBA(255, 0, 0, 255));
-        Olivec_Canvas* volume_bar = draw_ui_progress_bar(120, 5, volume / 100.0f, OLIVEC_RGBA(0, 0, 255, 255));
-        Olivec_Canvas* volume_icon = load_image_assets_get_volume_icon();
+
+        Olivec_Canvas *album_txt = draw_ui_text(album_str_buf);
+        Olivec_Canvas *track_txt = draw_ui_text(track_str_buf);
+        Olivec_Canvas *artist_txt = draw_ui_text(artist_str_buf);
+        Olivec_Canvas *time_txt = draw_ui_text(playback_str_buf);
+        Olivec_Canvas *time_bar = draw_ui_progress_bar(160, 5, playback.seconds_passed / (float)playback.seconds_total, OLIVEC_RGBA(255, 0, 0, 255));
+        Olivec_Canvas *volume_bar = draw_ui_progress_bar(120, 5, volume / 100.0f, OLIVEC_RGBA(0, 0, 255, 255));
+        Olivec_Canvas *volume_icon = load_image_assets_get_volume_icon();
 
         int mid_section_start = 60;
 
@@ -113,6 +136,27 @@ void* run_ui(void* arg __attribute__((unused)))
             draw_ui_blend_centered(*screen, *play_icon, mid_section_start + 80);
         }
 
+        if (cmd_errored)
+        {
+            long time_since_err = time_ms() - cmd_errored_time;
+            long alpha = 500 - time_since_err;
+            if (alpha < 0)
+                alpha = 0;
+            else if (alpha > 255)
+                alpha = 255;
+
+            uint32_t fg = 0x000000FF | (alpha << 24);
+            uint32_t bg = 0xFFFFFFFF;
+
+            olivec_blend_color(&bg, fg);
+
+            olivec_line_thick(*screen, 112, 185, 128, 201, 4, bg);
+            olivec_line_thick(*screen, 128, 185, 112, 201, 4, bg);
+
+            if (alpha == 0)
+                cmd_errored = false;
+        }
+
         draw_stuff_screen(screen);
 
         image_loader_image_free(&album_txt);
@@ -139,6 +183,8 @@ void listen_prev()
     int code = app_model_previous();
     if (code)
     {
+        cmd_errored_time = time_ms();
+        cmd_errored = true;
         fprintf(stderr, "user_interface: app_model_previous failed %d\n", code);
     }
 }
@@ -149,6 +195,8 @@ void listen_next()
     int code = app_model_next();
     if (code)
     {
+        cmd_errored_time = time_ms();
+        cmd_errored = true;
         fprintf(stderr, "user_interface: app_model_next failed %d\n", code);
     }
 }
@@ -159,6 +207,8 @@ void listen_pause_play()
     int code = app_model_toggle_pause_play();
     if (code)
     {
+        cmd_errored_time = time_ms();
+        cmd_errored = true;
         fprintf(stderr, "user_interface: app_model_toggle_pause_play failed %d\n", code);
     }
 }
@@ -169,6 +219,8 @@ void listen_shuffle()
     int code = app_model_toggle_shuffle();
     if (code)
     {
+        cmd_errored_time = time_ms();
+        cmd_errored = true;
         fprintf(stderr, "user_interface: app_model_toggle_shuffle failed %d\n", code);
     }
 }
@@ -179,6 +231,8 @@ void listen_repeat()
     int code = app_model_toggle_repeat();
     if (code)
     {
+        cmd_errored_time = time_ms();
+        cmd_errored = true;
         fprintf(stderr, "user_interface: app_model_toggle_repeat failed %d\n", code);
     }
 }
@@ -187,12 +241,20 @@ void on_encoder_turn(bool clockwise)
 {
     if (clockwise)
     {
-        app_model_increase_volume();
+        if (app_model_increase_volume())
+        {
+            cmd_errored_time = time_ms();
+            cmd_errored = true;
+        }
         // printf("Rotated Clockwise!\n");
     }
     else
     {
-        app_model_decrease_volume();
+        if (app_model_decrease_volume())
+        {
+            cmd_errored_time = time_ms();
+            cmd_errored = true;
+        }
         // printf("Rotated Counter-Clockwise!\n");
     }
 }

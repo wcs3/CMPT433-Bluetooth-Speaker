@@ -240,20 +240,20 @@ int app_model_toggle_repeat()
     return ret;
 }
 
-void app_model_increase_volume()
+int app_model_increase_volume()
 {
     int new_volume = volume + 5;
     if (new_volume > 127)
         new_volume = 127;
 
-    bt_player_set_property(BT_PLAYER_PROP_VOLUME, &new_volume);
+    return !bt_player_set_property(BT_PLAYER_PROP_VOLUME, &new_volume);
 }
 
-void app_model_decrease_volume()
+int app_model_decrease_volume()
 {
     int new_volume = volume - 5;
     if (new_volume < 0)
         new_volume = 0;
 
-    bt_player_set_property(BT_PLAYER_PROP_VOLUME, &new_volume);
+    return !bt_player_set_property(BT_PLAYER_PROP_VOLUME, &new_volume);
 }

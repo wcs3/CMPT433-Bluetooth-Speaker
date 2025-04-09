@@ -50,8 +50,8 @@ int app_model_toggle_shuffle();
 
 int app_model_toggle_repeat();
 
-void app_model_increase_volume();
+int app_model_increase_volume();
 
-void app_model_decrease_volume();
+int app_model_decrease_volume();
 
 #endif
