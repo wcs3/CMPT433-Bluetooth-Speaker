@@ -7,28 +7,9 @@
 
 static int volume = 80;
 
-static bt_player_track_info_t track;
 static uint32_t position = 0;
 static long position_changed_at = 0;
 static bool is_playing = false;
-
-void on_track_changed(const void *changed_val, void *user_data)
-{
-    (void)user_data;
-
-    const bt_player_track_info_t *new_track = changed_val;
-
-    free(track.title);
-    free(track.artist);
-    free(track.album);
-    free(track.genre);
-
-    track.title = strdup(new_track->title);
-    track.album = strdup(new_track->album);
-    track.artist = strdup(new_track->artist);
-    track.genre = strdup(new_track->genre);
-    track.duration = new_track->duration;
-}
 
 void on_position_changed(const void *changed_val, void *user_data)
 {
@@ -58,8 +39,6 @@ void on_volume_changed(const void *changed_val, void *user_data) {
 
 int app_model_init()
 {
-    track = (bt_player_track_info_t){0};
-    bt_player_set_property_changed_cb(BT_PLAYER_PROP_TRACK, on_track_changed, NULL);
     bt_player_set_property_changed_cb(BT_PLAYER_PROP_PLAYBACK_POSITION, on_position_changed, NULL);
     bt_player_set_property_changed_cb(BT_PLAYER_PROP_PLAYBACK_STATUS, on_status_changed, NULL);
     return 0;
@@ -67,39 +46,75 @@ int app_model_init()
 
 void app_model_cleanup()
 {
-    free(track.title);
-    free(track.artist);
-    free(track.album);
-    free(track.genre);
     return;
 }
 
 char *app_model_get_track_title()
 {
+    bt_player_track_info_t track;
+    bt_player_get_property(BT_PLAYER_PROP_TRACK, &track);
+    free(track.album);
+    free(track.artist);
+    free(track.genre);
+
     if (!track.title || !strcmp(track.title, ""))
+    {
+        free(track.title);
         return strdup("N/A");
-    return strdup(track.title);
+    }
+
+    return track.title;
 }
 
 char *app_model_get_album_title()
 {
+    bt_player_track_info_t track;
+    bt_player_get_property(BT_PLAYER_PROP_TRACK, &track);
+    free(track.title);
+    free(track.artist);
+    free(track.genre);
+
     if (!track.album || !strcmp(track.album, ""))
+    {
+        free(track.album);
         return strdup("N/A");
-    return strdup(track.album);
+    }
+
+    return track.album;
 }
 
 char *app_model_get_genre()
 {
+    bt_player_track_info_t track;
+    bt_player_get_property(BT_PLAYER_PROP_TRACK, &track);
+    free(track.title);
+    free(track.artist);
+    free(track.album);
+
     if (!track.genre || !strcmp(track.genre, ""))
+    {
+        free(track.genre);
         return strdup("N/A");
-    return strdup(track.genre);
+    }
+
+    return track.genre;
 }
 
 char *app_model_get_artist()
 {
+    bt_player_track_info_t track;
+    bt_player_get_property(BT_PLAYER_PROP_TRACK, &track);
+    free(track.title);
+    free(track.genre);
+    free(track.album);
+
     if (!track.artist || !strcmp(track.artist, ""))
+    {
+        free(track.artist);
         return strdup("N/A");
-    return strdup(track.artist);
+    }
+
+    return track.artist;
 }
 
 int app_model_get_volume()
@@ -109,6 +124,13 @@ int app_model_get_volume()
 
 app_state_playback app_model_get_playback()
 {
+    bt_player_track_info_t track;
+    bt_player_get_property(BT_PLAYER_PROP_TRACK, &track);
+    free(track.title);
+    free(track.genre);
+    free(track.album);
+    free(track.artist);
+
     if (!is_playing)
     {
         return (app_state_playback){
