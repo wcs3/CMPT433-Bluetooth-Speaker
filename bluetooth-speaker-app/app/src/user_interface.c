@@ -16,16 +16,8 @@
 #include <unistd.h>
 #include <string.h>
 
-#define UI_STR_BUF_SIZE 32
 
 static pthread_t ui_thread;
-
-// // max_size is the max number of characters you want displayed
-// static void trim_string(char* src, char* dest, int max_size)
-// {
-//     strncpy(dest, src, max_size);
-//     dest[max_size] = '\0';
-// }
 
 void* run_ui(void* arg __attribute__((unused)))
 {
@@ -72,17 +64,17 @@ void* run_ui(void* arg __attribute__((unused)))
         Olivec_Canvas* volume_bar = draw_ui_progress_bar(120, 5, volume / 100.0f, OLIVEC_RGBA(0, 0, 255, 255));
         Olivec_Canvas* volume_icon = load_image_assets_get_volume_icon();
 
-        int mid_section_start = 80;
+        int mid_section_start = 60;
 
         olivec_fill(*screen, OLIVEC_RGBA(255, 255, 255, 255));
         draw_ui_blend_centered(*screen, *album_txt, 10);
         draw_ui_blend_centered(*screen, *track_txt, mid_section_start);
         draw_ui_blend_centered(*screen, *artist_txt, mid_section_start + 20);
-        draw_ui_blend_centered(*screen, *time_bar, mid_section_start + 40);
-        draw_ui_blend_centered(*screen, *time_txt, mid_section_start + 45);
+        draw_ui_blend_centered(*screen, *time_bar, mid_section_start + 45);
+        draw_ui_blend_centered(*screen, *time_txt, mid_section_start + 50);
 
-        int vol_bar_x = draw_ui_blend_centered(*screen, *volume_bar, mid_section_start + 70);
-        olivec_sprite_blend(*screen, vol_bar_x, mid_section_start + 80, volume_icon->width, volume_icon->height, *volume_icon);
+        int vol_bar_x = draw_ui_blend_centered(*screen, *volume_bar, mid_section_start + 80);
+        olivec_sprite_blend(*screen, vol_bar_x, mid_section_start + 90, volume_icon->width, volume_icon->height, *volume_icon);
 
         draw_stuff_screen(screen);
 
@@ -104,7 +96,7 @@ void* run_ui(void* arg __attribute__((unused)))
     return NULL;
 }
 
-void listen_up()
+void listen_prev()
 {
     printf("previous\n");
     int code = app_model_previous();
@@ -145,10 +137,9 @@ void listen_pause()
 
 int user_interface_init()
 {
-    rotary_encoder_set_turn_listener(NULL);
     joystick_set_on_up_listener(listen_play); //listen_play
     joystick_set_on_down_listener(listen_pause); //listen_pause
-    joystick_set_on_left_listener(listen_up); //listen_up
+    joystick_set_on_left_listener(listen_prev); //listen_up
     joystick_set_on_right_listener(listen_next); //listen_next
     int thread_code = pthread_create(&ui_thread, NULL, run_ui, NULL);
     if(thread_code) {
