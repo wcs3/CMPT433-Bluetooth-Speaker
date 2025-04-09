@@ -274,7 +274,7 @@ static void on_object_removed(GDBusObjectManager *manager,
         for (GList *iter2 = watchers_list; iter2; iter2 = iter2->next)
         {
             dbus_proxy_watch_t *watch = iter2->data;
-            if (watch->filter(proxy) && watch->removed_cb)
+            if (watch->removed_cb)
                 watch->removed_cb(proxy);
         }
         pthread_mutex_unlock(&watchers_list_mtx);

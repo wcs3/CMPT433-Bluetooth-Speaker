@@ -441,17 +441,27 @@ static void proxy_removed_cb(GDBusProxy *removed_proxy)
     pthread_mutex_lock(&data.proxy_mtx);
     if (data.player_proxy == removed_proxy)
     {
+        pthread_mutex_lock(&prop_entries[BT_PLAYER_PROP_TRACK].mtx);
+        g_free(props.track_info.title);
+        g_free(props.track_info.artist);
+        g_free(props.track_info.album);
+        g_free(props.track_info.genre);
+        props.track_info = (bt_player_track_info_t){0};
+        pthread_mutex_unlock(&prop_entries[BT_PLAYER_PROP_TRACK].mtx);
+
         g_signal_handler_disconnect(data.player_proxy,
                                     data.player_handler_id);
         g_object_unref(data.player_proxy);
         data.player_proxy = NULL;
+        g_print("player disconnected\n");
     }
     else if (data.transport_proxy == removed_proxy)
     {
         g_signal_handler_disconnect(data.transport_proxy,
                                     data.transport_handler_id);
         g_object_unref(data.transport_proxy);
-        data.player_proxy = NULL;
+        data.transport_proxy = NULL;
+        g_print("transport disconnected\n");
     }
     pthread_mutex_unlock(&data.proxy_mtx);
 }
