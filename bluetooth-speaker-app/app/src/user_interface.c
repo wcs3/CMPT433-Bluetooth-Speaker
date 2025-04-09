@@ -5,6 +5,8 @@
 #include "hal/rotary_encoder.h"
 #include "hal/draw_stuff.h"
 #include "hal/image_loader.h"
+#include "hal/audio_capture.h"
+#include "hal/microphone.h"
 #include "ui/draw_ui.h"
 #include "ui/load_image_assets.h"
 #include "hal/time_util.h"
@@ -19,6 +21,7 @@
 #define UI_STR_BUF_SIZE 32
 
 static pthread_t ui_thread;
+static bool rotary_encoder_pressed = false; 
 
 // // max_size is the max number of characters you want displayed
 // static void trim_string(char* src, char* dest, int max_size)
@@ -104,6 +107,69 @@ void* run_ui(void* arg __attribute__((unused)))
     return NULL;
 }
 
+void listen_press()
+{
+    if (!rotary_encoder_pressed) {
+        printf("Listening...\n");
+        // Enable the microphone
+        microphone_reset_audio_input();
+        microphone_enable_audio_listening();
+        rotary_encoder_pressed = true;
+    } else {
+        printf("Loading...\n");
+        microphone_disable_audio_listening();
+        
+        enum keyword detected_keyword = KEYWORD_NONE;
+        detected_keyword = microphone_get_keyword_from_audio_input();
+
+        // Perfom the appropriate command based on the users detected keyword
+        if (detected_keyword == VOLUME_UP) {
+            printf("VOLUME IS GOING UP!\n");
+
+        } else if (detected_keyword == VOLUME_DOWN) {
+            printf("VOLUME IS GOING DOWN!\n");
+        } 
+
+        else if (detected_keyword == PLAY) {
+            printf("play\n");
+            int code = app_model_play();
+            if(code) {
+                fprintf(stderr, "user_interface: app_model_play failed %d\n", code);
+            }
+        }
+        
+        else if (detected_keyword == NEXT) {
+            printf("next\n");
+            int code = app_model_next();
+            if(code) {
+                fprintf(stderr, "user_interface: app_model_next failed %d\n", code);
+            }
+        } 
+        
+        else if (detected_keyword == PREVIOUS) {
+            printf("previous\n");
+            int code = app_model_previous();
+            if(code) {
+                fprintf(stderr, "user_interface: app_model_previous failed %d\n", code);
+            }
+        } 
+        
+        else if (detected_keyword == STOP) {
+            printf("pause\n");
+            int code = app_model_pause();
+            if(code) {
+                fprintf(stderr, "user_interface: app_model_pause failed %d\n", code);
+            }
+        } 
+        
+        else {
+            printf("No Audio was detected!\n");
+        }
+
+        rotary_encoder_pressed = false;
+    }
+}
+
 void listen_up()
 {
     printf("previous\n");
@@ -146,6 +212,7 @@ void listen_pause()
 int user_interface_init()
 {
     rotary_encoder_set_turn_listener(NULL);
+    rotary_encoder_set_press_listener(listen_press); // rotary encoder press
     joystick_set_on_up_listener(listen_play); //listen_play
     joystick_set_on_down_listener(listen_pause); //listen_pause
     joystick_set_on_left_listener(listen_up); //listen_up
