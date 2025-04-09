@@ -4,6 +4,7 @@
 #include "hal/light_sensor.h"
 #include "hal/led_pwm.h"
 #include "hal/draw_stuff.h"
+#include "hal/joystick.h"
 #include "hal/period_timer.h"
 #include "hal/lg_gpio_samples_func.h"
 #include "ui/load_image_assets.h"
@@ -30,6 +31,12 @@ int init_start(int num_confirms)
     if(code) {
         fprintf(stderr, "init: failed to load image assets %d\n", code);
         return 1;
+    }
+
+    code = joystick_init();
+    if(code) {
+        fprintf(stderr, "failed to init stick %d\n", code);
+        return 2;
     }
 
     code = rotary_encoder_init();
@@ -94,6 +101,8 @@ void init_end(void)
             fprintf(stderr, "failed to destroy barrier %d\n", code);
         }
     }
+
+    joystick_cleanup();
 
     load_image_assets_cleanup();
 
