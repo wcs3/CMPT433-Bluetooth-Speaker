@@ -2,6 +2,8 @@
 #ifndef _APP_MODEL_H
 #define _APP_MODEL_H
 
+#include <stdbool.h>
+
 // a model for the bluetooth speaker, contains getters for state and functions for sending commands to phone
 // implement these so that they can be called at arbitrary times after init
 
@@ -28,9 +30,15 @@ int app_model_get_volume();
 
 app_state_playback app_model_get_playback();
 
+int app_model_get_shuffle();
+
+int app_model_get_repeat();
+
+bool app_model_is_playing();
+
 // commands the board can send, these are going to be needed for both voice commands and controls on the board so they should be thread safe
 
-int app_model_play();
+int app_model_toggle_pause_play();
 
 int app_model_pause();
 
@@ -38,9 +46,9 @@ int app_model_next();
 
 int app_model_previous();
 
-int app_model_shuffle();
+int app_model_toggle_shuffle();
 
-int app_model_repeat();
+int app_model_toggle_repeat();
 
 void app_model_increase_volume();
 
