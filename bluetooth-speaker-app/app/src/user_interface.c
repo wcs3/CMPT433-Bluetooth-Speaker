@@ -142,9 +142,28 @@ void listen_pause()
     }
 }
 
+void listen_shuffle_repeat(bool clockwise)
+{
+    int code;
+    if(clockwise) {
+        printf("shuffle\n");
+        code = app_model_shuffle();
+        if(code) {
+            fprintf(stderr, "user_interface: app_model_shuffle failed %d\n", code);
+        }
+        
+    } else {
+        printf("repeat\n");
+        code = app_model_repeat();
+        if(code) {
+            fprintf(stderr, "user_interface: app_model_repeat failed %d\n", code);
+        }
+    }
+}
+
 int user_interface_init()
 {
-    rotary_encoder_set_turn_listener(NULL);
+    rotary_encoder_set_turn_listener(listen_shuffle_repeat);
     joystick_set_on_up_listener(listen_up);
     joystick_set_on_down_listener(listen_next);
     joystick_set_on_left_listener(listen_pause);
