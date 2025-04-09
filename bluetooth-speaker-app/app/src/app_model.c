@@ -53,6 +53,7 @@ void on_status_changed(const void *changed_val, void *user_data)
 void on_volume_changed(const void *changed_val, void *user_data) {
     (void) user_data;
 
+    volume = *(uint8_t *)changed_val;
 }
 
 int app_model_init()
@@ -103,7 +104,7 @@ char *app_model_get_artist()
 
 int app_model_get_volume()
 {
-    return 0;
+    return volume * 100.0 / 127;
 }
 
 app_state_playback app_model_get_playback()
@@ -161,8 +162,8 @@ int app_model_repeat()
 
 void app_model_increase_volume(){
     volume += 5;
-    if (volume > 120){
-        volume = 100;
+    if (volume > 127){
+        volume = 127;
     }
     bt_player_set_property(BT_PLAYER_PROP_VOLUME, &volume);
 }
