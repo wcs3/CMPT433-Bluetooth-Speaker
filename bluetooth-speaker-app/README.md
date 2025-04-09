@@ -57,7 +57,7 @@ sudo apt-get install build-essential crossbuild-essential-arm64 cmake`
 - Install build dependencies:
 ```
 sudo apt update
-sudo apt install libgpiod-dev:arm64 libglib2.0-dev:arm64
+sudo apt install libgpiod-dev:arm64 libglib2.0-dev:arm64 libasound2-dev:arm64 libjson-c-dev:arm64
 ```
 - When you first open the project, click the "Build" button in the status bar for CMake to generate the `build\` folder and recreate the makefiles.
   - When you edit and save a CMakeLists.txt file, VS Code will automatically update this folder.
