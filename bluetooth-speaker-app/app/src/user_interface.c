@@ -9,6 +9,7 @@
 #include "ui/load_image_assets.h"
 #include "hal/time_util.h"
 #include "hal/joystick.h"
+
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -95,7 +96,7 @@ void* run_ui(void* arg __attribute__((unused)))
     return NULL;
 }
 
-void listen_up()
+void listen_prev()
 {
     printf("previous\n");
     int code = app_model_previous();
@@ -136,10 +137,10 @@ void listen_pause()
 
 int user_interface_init()
 {
-    joystick_set_on_up_listener(listen_up);
-    joystick_set_on_down_listener(listen_next);
-    joystick_set_on_left_listener(listen_pause);
-    joystick_set_on_right_listener(listen_play);
+    joystick_set_on_up_listener(listen_play); //listen_play
+    joystick_set_on_down_listener(listen_pause); //listen_pause
+    joystick_set_on_left_listener(listen_prev); //listen_up
+    joystick_set_on_right_listener(listen_next); //listen_next
     int thread_code = pthread_create(&ui_thread, NULL, run_ui, NULL);
     if(thread_code) {
         fprintf(stderr, "failed to create ui thread %d\n", thread_code);

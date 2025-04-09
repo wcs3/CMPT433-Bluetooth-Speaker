@@ -1,0 +1,15 @@
+{
+    "version": 8,
+    "configurePresets": [
+        {
+            "name": "aarch64-linux-gnu",
+            "displayName": "aarch64-linux-gnu",
+            "description": "Build aarch64 binary on non-aarch64 debian host",
+            "binaryDir": "${sourceDir}/build",
+            "toolchainFile": "${sourceDir}/aarch64-linux-gnu.cmake",
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        }
+    ]
+}

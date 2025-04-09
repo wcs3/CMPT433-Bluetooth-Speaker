@@ -18,7 +18,6 @@ target_link_libraries(433-bluetooth-speaker LINK_PRIVATE hal)
 target_link_libraries(433-bluetooth-speaker LINK_PRIVATE lcd)
 target_link_libraries(433-bluetooth-speaker LINK_PRIVATE ui)
 target_link_libraries(433-bluetooth-speaker LINK_PRIVATE lgpio)
-target_link_libraries(433-bluetooth-speaker LINK_PRIVATE Binc)
 
 # ALSA support
 find_package(ALSA REQUIRED)
@@ -29,6 +28,10 @@ target_link_libraries(433-bluetooth-speaker LINK_PRIVATE vosk)
 
 # json-c support
 target_link_libraries(433-bluetooth-speaker LINK_PRIVATE json-c)
+
+find_package(PkgConfig REQUIRED)
+pkg_check_modules(deps REQUIRED IMPORTED_TARGET glib-2.0 gio-2.0)
+target_link_libraries(433-bluetooth-speaker LINK_PRIVATE PkgConfig::deps)
 
 # Set runtime search path for shared libraries (during build and post-build usage)
 set_target_properties(433-bluetooth-speaker PROPERTIES

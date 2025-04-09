@@ -1,4 +1,6 @@
 #include "app/app_model.h"
+#include "hal/bt_player.h"
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -53,21 +55,25 @@ app_state_playback app_model_get_playback()
 
 int app_model_play() 
 {
+    bt_player_send_command(BT_PLAYER_CMD_PLAY);
     return 0;
 }
 
 int app_model_pause() 
 {
+    bt_player_send_command(BT_PLAYER_CMD_PAUSE);
     return 0;
 }
 
 int app_model_next() 
 {
+    bt_player_send_command(BT_PLAYER_CMD_NEXT);
     return 0;
 }
 
 int app_model_previous() 
 {
+    bt_player_send_command(BT_PLAYER_CMD_PREV);
     return 0;
 }
 
