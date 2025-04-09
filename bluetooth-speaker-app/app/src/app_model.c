@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+static int volume = 80;
+
 int app_model_init() 
 {
     return 0;
@@ -85,4 +87,21 @@ int app_model_shuffle()
 int app_model_repeat() 
 {
     return 0;
+}
+
+void app_model_increase_volume(){
+    volume += 5;
+    if (volume > 120){
+        volume = 100;
+    }
+    bt_player_set_property(BT_PLAYER_PROP_VOLUME, &volume);
+}
+
+
+void app_model_decrease_volume(){
+    volume -= 5;
+    if (volume < 0){
+        volume = 0;
+    }
+    bt_player_set_property(BT_PLAYER_PROP_VOLUME, &volume);
 }

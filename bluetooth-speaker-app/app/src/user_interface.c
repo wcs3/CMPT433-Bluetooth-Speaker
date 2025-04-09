@@ -19,6 +19,14 @@
 
 static pthread_t ui_thread;
 
+
+// // max_size is the max number of characters you want displayed
+// static void trim_string(char* src, char* dest, int max_size)
+// {
+//     strncpy(dest, src, max_size);
+//     dest[max_size] = '\0';
+// }
+
 void* run_ui(void* arg __attribute__((unused)))
 {
     int max_chars = LCD_WIDTH / LOAD_IMAGE_ASSETS_CHAR_WIDTH;
@@ -135,8 +143,20 @@ void listen_pause()
     }
 }
 
+
+void on_encoder_turn(bool clockwise) {
+    if (clockwise) {
+        app_model_increase_volume();
+        // printf("Rotated Clockwise!\n");
+    } else {
+        app_model_decrease_volume();
+        // printf("Rotated Counter-Clockwise!\n");
+    }
+}
+
 int user_interface_init()
 {
+    rotary_encoder_set_turn_listener(on_encoder_turn);
     joystick_set_on_up_listener(listen_play); //listen_play
     joystick_set_on_down_listener(listen_pause); //listen_pause
     joystick_set_on_left_listener(listen_prev); //listen_up

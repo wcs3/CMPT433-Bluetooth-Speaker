@@ -42,4 +42,8 @@ int app_model_shuffle();
 
 int app_model_repeat();
 
+void app_model_increase_volume();
+
+void app_model_decrease_volume();
+
 #endif
