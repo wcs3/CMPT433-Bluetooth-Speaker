@@ -183,62 +183,82 @@ void *run_ui(void *arg __attribute__((unused)))
 
 void listen_press()
 {
-    if (!rotary_encoder_pressed) {
+    if (!rotary_encoder_pressed)
+    {
         printf("Listening...\n");
         // Enable the microphone
         microphone_reset_audio_input();
         microphone_enable_audio_listening();
         rotary_encoder_pressed = true;
-    } else {
+    }
+    else
+    {
         printf("Loading...\n");
         microphone_disable_audio_listening();
-        
+
         enum keyword detected_keyword = KEYWORD_NONE;
         detected_keyword = microphone_get_keyword_from_audio_input();
 
         // Perfom the appropriate command based on the users detected keyword
-        if (detected_keyword == VOLUME_UP) {
+        if (detected_keyword == VOLUME_UP)
+        {
             printf("volume up\n");
             app_model_increase_volume();
-
-        } else if (detected_keyword == VOLUME_DOWN) {
+        }
+        else if (detected_keyword == VOLUME_DOWN)
+        {
             printf("volume down\n");
             app_model_decrease_volume();
-        } 
+        }
 
-        else if (detected_keyword == PLAY) {
+        else if (detected_keyword == PLAY)
+        {
             printf("play\n");
-            int code = app_model_play();
-            if(code) {
-                fprintf(stderr, "user_interface: app_model_play failed %d\n", code);
+            if (!app_model_is_playing())
+            {
+                int code = app_model_toggle_pause_play();
+                if (code)
+                {
+                    fprintf(stderr, "user_interface: app_model_toggle_pause_play failed %d\n", code);
+                }
             }
         }
-        
-        else if (detected_keyword == NEXT) {
+
+        else if (detected_keyword == NEXT)
+        {
             printf("next\n");
             int code = app_model_next();
-            if(code) {
+            if (code)
+            {
                 fprintf(stderr, "user_interface: app_model_next failed %d\n", code);
             }
-        } 
-        
-        else if (detected_keyword == PREVIOUS) {
+        }
+
+        else if (detected_keyword == PREVIOUS)
+        {
             printf("previous\n");
             int code = app_model_previous();
-            if(code) {
+            if (code)
+            {
                 fprintf(stderr, "user_interface: app_model_previous failed %d\n", code);
             }
-        } 
-        
-        else if (detected_keyword == STOP) {
+        }
+
+        else if (detected_keyword == STOP)
+        {
             printf("pause\n");
-            int code = app_model_pause();
-            if(code) {
-                fprintf(stderr, "user_interface: app_model_pause failed %d\n", code);
+            if (app_model_is_playing())
+            {
+                int code = app_model_toggle_pause_play();
+                if (code)
+                {
+                    fprintf(stderr, "user_interface: app_model_toggle_pause_play failed %d\n", code);
+                }
             }
-        } 
-        
-        else {
+        }
+
+        else
+        {
             printf("No Audio was detected!\n");
         }
 
