@@ -20,6 +20,7 @@ static short* audio_input_samples = NULL;
 static size_t num_samples = 0;
 static bool is_initialized = false;
 static bool is_running = false;
+static bool is_transcription_ready = false;
 static pthread_t mic_thread;
 static VoskModel* model = NULL;
 static VoskRecognizer* recognizer = NULL;
@@ -47,11 +48,26 @@ static void* listen_for_audio(void* arg) {
             // Utilized CHATGPT for this section
             // Extract the text portion from the json
             struct json_object* parsed = json_tokener_parse(result);
+            if (!parsed) {
+                fprintf(stderr, "VOSK: Failed to parse JSON result: %s\n", result);
+                continue;
+            }
+
             struct json_object* text;
+            struct json_object* partial;
+
             if (json_object_object_get_ex(parsed, "text", &text)) {
                 strncpy(audio_input_char, json_object_get_string(text), MAX_INPUT - 1);
                 audio_input_char[MAX_INPUT - 1] = '\0';
+                is_transcription_ready = true;
             }
+            
+            else if (json_object_object_get_ex(parsed, "partial", &partial)) {
+                strncpy(audio_input_char, json_object_get_string(partial), MAX_INPUT - 1);
+                audio_input_char[MAX_INPUT - 1] = '\0';
+                is_transcription_ready = true;
+            }
+
             json_object_put(parsed);
         }
     }
@@ -82,6 +98,8 @@ void microphone_init(void) {
 
 void microphone_enable_audio_listening(void) {
     assert(is_initialized);
+    microphone_reset_audio_input();
+    vosk_recognizer_reset(recognizer);
     is_running = true;
 
     // Start the ALSA thread to capture data
@@ -100,7 +118,12 @@ void microphone_disable_audio_listening(void) {
 }
 
 const char* microphone_get_audio_input(void) {
-    return audio_input_char;
+    if (is_transcription_ready) {
+        is_transcription_ready = false;
+        return audio_input_char;
+    } else {
+        return "";
+    }
 }
 
 enum keyword microphone_get_keyword_from_audio_input(void) {
@@ -108,7 +131,9 @@ enum keyword microphone_get_keyword_from_audio_input(void) {
 
     if (strstr(audio_input_char, "stop")) {
         return STOP;
-    } else if (strstr(audio_input_char, "next song")) {
+    } else if (strstr(audio_input_char, "play")) {
+        return PLAY;
+    } else if (strstr(audio_input_char, "next")) {
         return NEXT;
     } else if (strstr(audio_input_char, "previous")) {
         return PREVIOUS;
@@ -119,6 +144,11 @@ enum keyword microphone_get_keyword_from_audio_input(void) {
     } else {
         return KEYWORD_NONE;
     }
+}
+
+void microphone_reset_audio_input(void) {
+    memset(audio_input_char, 0, MAX_INPUT);
+    is_transcription_ready = false;
 }
 
 void microphone_cleanup(void) {
