@@ -415,6 +415,7 @@ static void proxy_added_cb(GDBusProxy *new_proxy)
     for (size_t i = 0; i < BT_PLAYER_PROP_cnt; i++)
     {
         prop_entry_t *entry = &prop_entries[i];
+        prop_cb_data_t *cb_data = &data.prop_cb_data[i];
         if (*entry->proxy == *proxy)
         {
             GVariant *prop_val;
@@ -423,6 +424,8 @@ static void proxy_added_cb(GDBusProxy *new_proxy)
             {
                 pthread_mutex_lock(&entry->mtx);
                 entry->update_val_fn(prop_val);
+                if(cb_data->cb)
+                    cb_data->cb(entry->prop_val, cb_data->user_data);
                 pthread_mutex_unlock(&entry->mtx);
                 g_variant_unref(prop_val);
             }
