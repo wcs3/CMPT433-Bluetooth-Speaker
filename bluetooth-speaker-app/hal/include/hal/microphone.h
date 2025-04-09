@@ -25,13 +25,14 @@ Explanation of each function provided by this module:
 6. microphone_get_keyword_from_audio_input:
     Processes the transcribed audio input string to detect specific keywords
     Returns the first meaningful keyword detected (e.g., "stop", "next", "volume up")
- */
+*/
 
-// Enum to provide what the user have commanded
+// Enum to provide what the user has commanded
 enum keyword {
     KEYWORD_NONE,
     STOP,
     NEXT,
+    PREVIOUS,
     VOLUME_UP,
     VOLUME_DOWN
 };
@@ -40,7 +41,7 @@ void microphone_init(void);
 void microphone_enable_audio_listening(void);
 void microphone_disable_audio_listening(void);
 const char* microphone_get_audio_input(void);
-enum keyword microphone_get_keyword_from_audio_input(const char* audio_input);
+enum keyword microphone_get_keyword_from_audio_input(void);
 void microphone_cleanup(void);
 
-#endif
+#endif // _MICROPHONE_H_
