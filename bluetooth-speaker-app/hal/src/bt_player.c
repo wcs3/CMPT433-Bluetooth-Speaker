@@ -224,32 +224,14 @@ void bt_player_send_command_async(bt_player_cmd_e command,
 bool bt_player_get_property(bt_player_prop_e property, void *retval)
 {
     prop_entry_t *entry;
-    GVariant *val;
     bool ret;
     bt_player_track_info_t *track_ret;
 
+    ret = true;
+
     entry = &prop_entries[property];
 
-    pthread_mutex_lock(&data.proxy_mtx);
-    if (!*entry->proxy)
-    {
-        g_printerr("Proxy for property '%s' is unavailable\n",
-                   entry->prop_name);
-        ret = false;
-    }
-    else if (!(val = g_dbus_proxy_get_cached_property(*entry->proxy, entry->prop_name)))
-    {
-        g_printerr("Property '%s' is unavailable\n", entry->prop_name);
-        ret = false;
-    }
-    pthread_mutex_unlock(&data.proxy_mtx);
-
-    if (!ret)
-        return ret;
-
     pthread_mutex_lock(&entry->mtx);
-    entry->update_val_fn(val);
-    g_variant_unref(val);
 
     switch (property)
     {
@@ -433,6 +415,7 @@ static void proxy_added_cb(GDBusProxy *new_proxy)
     for (size_t i = 0; i < BT_PLAYER_PROP_cnt; i++)
     {
         prop_entry_t *entry = &prop_entries[i];
+        prop_cb_data_t *cb_data = &data.prop_cb_data[i];
         if (*entry->proxy == *proxy)
         {
             GVariant *prop_val;
@@ -441,6 +424,8 @@ static void proxy_added_cb(GDBusProxy *new_proxy)
             {
                 pthread_mutex_lock(&entry->mtx);
                 entry->update_val_fn(prop_val);
+                if(cb_data->cb)
+                    cb_data->cb(entry->prop_val, cb_data->user_data);
                 pthread_mutex_unlock(&entry->mtx);
                 g_variant_unref(prop_val);
             }
@@ -459,17 +444,27 @@ static void proxy_removed_cb(GDBusProxy *removed_proxy)
     pthread_mutex_lock(&data.proxy_mtx);
     if (data.player_proxy == removed_proxy)
     {
+        pthread_mutex_lock(&prop_entries[BT_PLAYER_PROP_TRACK].mtx);
+        g_free(props.track_info.title);
+        g_free(props.track_info.artist);
+        g_free(props.track_info.album);
+        g_free(props.track_info.genre);
+        props.track_info = (bt_player_track_info_t){0};
+        pthread_mutex_unlock(&prop_entries[BT_PLAYER_PROP_TRACK].mtx);
+
         g_signal_handler_disconnect(data.player_proxy,
                                     data.player_handler_id);
         g_object_unref(data.player_proxy);
         data.player_proxy = NULL;
+        g_print("player disconnected\n");
     }
     else if (data.transport_proxy == removed_proxy)
     {
         g_signal_handler_disconnect(data.transport_proxy,
                                     data.transport_handler_id);
         g_object_unref(data.transport_proxy);
-        data.player_proxy = NULL;
+        data.transport_proxy = NULL;
+        g_print("transport disconnected\n");
     }
     pthread_mutex_unlock(&data.proxy_mtx);
 }
@@ -517,9 +512,9 @@ static bool prop_update_repeat(GVariant *val)
     bt_player_repeat_e new_repeat = BT_PLAYER_REPEAT_OFF;
 
     if (g_str_equal(repeat_str, "singletrack"))
-        props.repeat = BT_PLAYER_REPEAT_SINGLE_TRACK;
+        new_repeat = BT_PLAYER_REPEAT_SINGLE_TRACK;
     else if (g_str_equal(repeat_str, "alltracks"))
-        props.repeat = BT_PLAYER_REPEAT_ALL_TRACKS;
+        new_repeat = BT_PLAYER_REPEAT_ALL_TRACKS;
 
     if (new_repeat == props.repeat)
         return false;

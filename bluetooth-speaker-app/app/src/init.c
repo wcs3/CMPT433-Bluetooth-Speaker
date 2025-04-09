@@ -1,5 +1,6 @@
 #define _POSIX_C_SOURCE 200809L
 #include "app/init.h"
+#include "app/app_model.h"
 #include "hal/rotary_encoder.h"
 #include "hal/light_sensor.h"
 #include "hal/led_pwm.h"
@@ -93,17 +94,13 @@ int init_start(int num_confirms)
     }
 
 
-    // bt agent and player ==>
-    //maybe add the code
     bt_agent_init();
 
     dbus_init();
-    g_print("dbus initialized\n");
-    bt_player_init();
-    g_print("bt_player initialized\n");
 
-    bt_player_set_property_changed_cb(BT_PLAYER_PROP_TRACK, on_track_change, NULL);
-    bt_player_set_property_changed_cb(BT_PLAYER_PROP_PLAYBACK_POSITION, on_position_change, NULL);
+    bt_player_init();
+
+    app_model_init();
 
     audio_capture_init();
     microphone_init();
@@ -141,6 +138,12 @@ void init_end(void)
             fprintf(stderr, "failed to wait barrier init_end %d\n", code);
         }
     }
+
+    app_model_cleanup();
+
+    bt_player_cleanup();
+
+    dbus_cleanup();
 
     bt_agent_cleanup();
     draw_stuff_cleanup();

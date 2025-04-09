@@ -22,6 +22,7 @@ GMainLoop *main_loop = NULL;
 Adapter *default_adapter = NULL;
 Application *app = NULL;
 Agent *agent = NULL;
+Device *connected_device = NULL;
 
 pthread_t agent_thread_id;
 
@@ -34,11 +35,23 @@ void on_central_state_changed(Adapter *adapter, Device *device)
     ConnectionState state = binc_device_get_connection_state(device);
     if (state == BINC_CONNECTED)
     {
-        binc_adapter_discoverable_off(adapter);
+        if (!connected_device)
+        {
+            connected_device = device;
+            binc_adapter_discoverable_off(adapter);
+        }
+        else
+        {
+            binc_device_disconnect(device);
+        }
     }
     else if (state == BINC_DISCONNECTED)
     {
-        binc_adapter_discoverable_on(adapter);
+        if (connected_device && g_str_equal(binc_device_get_name(connected_device), binc_device_get_name(device)))
+        {
+            connected_device = NULL;
+            binc_adapter_discoverable_on(adapter);
+        }
     }
 }
 
@@ -62,13 +75,6 @@ void bt_agent_init()
         }
 
         binc_adapter_set_remote_central_cb(default_adapter, on_central_state_changed);
-
-        GList *devices = binc_adapter_get_devices(default_adapter);
-        for (GList *iter = devices; iter; iter = iter->next)
-        {
-            Device *dev = iter->data;
-            binc_device_connect(dev);
-        }
 
         binc_adapter_discoverable_on(default_adapter);
 

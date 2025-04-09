@@ -61,6 +61,9 @@ void draw_stuff_cleanup()
 
     draw_stuff_update_screen(" ");
 
+    LCD_1IN54_Clear(BLACK);
+    LCD_1IN54_SetBacklight(0);
+
     // Module Exit
     free(s_fb);
     s_fb = NULL;

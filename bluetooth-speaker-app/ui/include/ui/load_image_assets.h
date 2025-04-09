@@ -9,6 +9,11 @@ int load_image_assets_init();
 // returns NULL if no image for a character exists
 Olivec_Canvas* load_image_assets_get_char(char c);
 Olivec_Canvas* load_image_assets_get_volume_icon();
+Olivec_Canvas* load_image_assets_get_shuffle_icon();
+Olivec_Canvas* load_image_assets_get_repeat_icon();
+Olivec_Canvas* load_image_assets_get_replay_icon();
+Olivec_Canvas* load_image_assets_get_play_icon();
+Olivec_Canvas* load_image_assets_get_pause_icon();
 void load_image_assets_cleanup();
 int draw_ui_blend_centered(Olivec_Canvas canvas, Olivec_Canvas sprite, int y);
 
