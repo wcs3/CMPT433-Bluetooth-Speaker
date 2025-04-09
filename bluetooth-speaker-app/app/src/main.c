@@ -15,6 +15,7 @@
 #include "hal/draw_stuff.h"
 #include "hal/microphone.h"
 #include "hal/audio_capture.h"
+#include "hal/bt_agent.h"
 
 
 #include "app/init.h"
