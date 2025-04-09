@@ -15,12 +15,12 @@
 #include "hal/draw_stuff.h"
 #include "hal/microphone.h"
 #include "hal/audio_capture.h"
+#include "hal/bt_agent.h"
 
 
 #include "app/init.h"
 #include "app/server.h"
 #include "app/user_interface.h"
-#include "app/bt_agent.h"
 
 static const int NUM_APP_THREADS = 1;
 
