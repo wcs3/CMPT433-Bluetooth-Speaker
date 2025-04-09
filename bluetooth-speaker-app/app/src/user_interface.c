@@ -40,6 +40,9 @@ void* run_ui(void* arg __attribute__((unused)))
         char* track_artist = app_model_get_artist();
         app_state_playback playback = app_model_get_playback();
         int volume = app_model_get_volume();
+        int shuffle = app_model_get_shuffle();
+        int repeat = app_model_get_repeat();
+        bool playing = app_model_is_playing();
 
         // stop compiler from complaining about string getting cut off because we actually want that
         #pragma GCC diagnostic push
@@ -79,14 +82,42 @@ void* run_ui(void* arg __attribute__((unused)))
         draw_ui_blend_centered(*screen, *time_bar, mid_section_start + 45);
         draw_ui_blend_centered(*screen, *time_txt, mid_section_start + 50);
 
-        int vol_bar_x = draw_ui_blend_centered(*screen, *volume_bar, mid_section_start + 80);
-        olivec_sprite_blend(*screen, vol_bar_x, mid_section_start + 90, volume_icon->width, volume_icon->height, *volume_icon);
+        int vol_bar_x = draw_ui_blend_centered(*screen, *volume_bar, mid_section_start + 160);
+        olivec_sprite_blend(*screen, vol_bar_x - 25, mid_section_start + 153, volume_icon->width, volume_icon->height, *volume_icon);
+
+        if (shuffle == 1)
+        {
+            Olivec_Canvas *shuffle_icon = load_image_assets_get_shuffle_icon();
+            olivec_sprite_blend(*screen, 50, mid_section_start + 80, shuffle_icon->width, shuffle_icon->height, *shuffle_icon);
+        }
+
+        if (repeat == 1)
+        {
+            Olivec_Canvas *replay_icon = load_image_assets_get_replay_icon();
+            olivec_sprite_blend(*screen, 160, mid_section_start + 80, replay_icon->width, replay_icon->height, *replay_icon);
+        }
+        else if (repeat == 2)
+        {
+            Olivec_Canvas *repeat_icon = load_image_assets_get_repeat_icon();
+            olivec_sprite_blend(*screen, 160, mid_section_start + 80, repeat_icon->width, repeat_icon->height, *repeat_icon);
+        }
+
+        if (playing)
+        {
+            Olivec_Canvas *pause_icon = load_image_assets_get_pause_icon();
+            draw_ui_blend_centered(*screen, *pause_icon, mid_section_start + 80);
+        }
+        else
+        {
+            Olivec_Canvas *play_icon = load_image_assets_get_play_icon();
+            draw_ui_blend_centered(*screen, *play_icon, mid_section_start + 80);
+        }
 
         draw_stuff_screen(screen);
 
         image_loader_image_free(&album_txt);
         image_loader_image_free(&track_txt);
-        image_loader_image_free(&time_txt); 
+        image_loader_image_free(&time_txt);
         image_loader_image_free(&time_bar);
         image_loader_image_free(&volume_bar);
         image_loader_image_free(&artist_txt);
@@ -137,7 +168,7 @@ void listen_shuffle()
     printf("cycle shuffle mode\n");
     int code = app_model_toggle_shuffle();
     if (code)
-{
+    {
         fprintf(stderr, "user_interface: app_model_toggle_shuffle failed %d\n", code);
     }
 }
