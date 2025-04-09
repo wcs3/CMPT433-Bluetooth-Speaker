@@ -36,10 +36,14 @@ static const uint16_t JOYSTICK_DEADZONE_MAX = JOYSTICK_CENTER + JOYSTICK_DEADZON
 static const uint16_t JOYSTICK_DEADZONE_TO_MIN = JOYSTICK_DEADZONE_MIN - JOYSTICK_MIN;
 static const uint16_t JOYSTICK_DEADZONE_TO_MAX = JOYSTICK_MAX - JOYSTICK_DEADZONE_MAX;
 
-static const float JOYSTICK_UP_TRIGGER = 0.9f;
-static const float JOYSTICK_UP_HYSTERESIS = 0.5f;
-static const float JOYSTICK_DOWN_TRIGGER = -0.9f;
-static const float JOYSTICK_DOWN_HYSTERESIS = -0.5f;
+static const float JOYSTICK_UP_TRIGGER = -0.9f;
+static const float JOYSTICK_UP_HYSTERESIS = -0.5f;
+static const float JOYSTICK_DOWN_TRIGGER = 0.9f;
+static const float JOYSTICK_DOWN_HYSTERESIS = 0.5f;
+static const float JOYSTICK_RIGHT_TRIGGER = 0.9f;
+static const float JOYSTICK_RIGHT_HYSTERESIS = 0.5f;
+static const float JOYSTICK_LEFT_TRIGGER = -0.9f;
+static const float JOYSTICK_LEFT_HYSTERESIS = -0.5f;
 static const int SAMPLE_SLEEP_TIME = 50;
 static const long HOLD_REPEAT_TIME = 500;
 
@@ -57,12 +61,37 @@ static void do_nothing(void) {}
 static void (* _Atomic on_press_listener)() = do_nothing;
 static void (* _Atomic on_up_listener)() = do_nothing;
 static void (* _Atomic on_down_listener)() = do_nothing;
+static void (* _Atomic on_left_listener)() = do_nothing;
+static void (* _Atomic on_right_listener)() = do_nothing;
+
 
 static void on_press(long curr_time, struct button_state_machine* state_machine) 
 {
      if(curr_time - state_machine->last_press_time > BUTTON_DEBOUNCE) {
         on_press_listener();
         state_machine->last_press_time = curr_time;
+    }
+}
+
+static void run_state_machine_l(bool* in_motion, long* last_trigger, float stick, float trigger, float hysteresis, long curr_time, void (*listener)())
+{
+    if(*in_motion && stick > trigger - hysteresis) {
+        *in_motion = false;
+    } else if(!*in_motion && stick <= trigger) {
+        *in_motion = true;
+        listener();
+        *last_trigger = curr_time;
+    }
+}
+
+static void run_state_machine_g(bool* in_motion, long* last_trigger, float stick, float trigger, float hysteresis, long curr_time, void (*listener)())
+{
+    if(*in_motion && stick < trigger - hysteresis) {
+        *in_motion = false;
+    } else if(!*in_motion && stick >= trigger) {
+        *in_motion = true;
+        listener();
+        *last_trigger = curr_time;
     }
 }
 
@@ -73,37 +102,39 @@ static void* do_sampling(void* args __attribute__((unused)))
     int code;
     bool in_up_motion = false;
     bool in_down_motion = false;
+    bool in_left_motion = false;
+    bool in_right_motion = false;
     long last_up_trigger = time_ms();
     long last_down_trigger = last_up_trigger;
+    long last_left_trigger = last_up_trigger;
+    long last_right_trigger = last_up_trigger;
 
     while (keep_sampling)
     {
         float stick_y;
+        float stick_x;
         code = joystick_read_y(&stick_y);
         if(code) {
-            fprintf(stderr, "Failed to read joystick in sampling thread %d\n", code);
+            fprintf(stderr, "Failed to read joystick y in sampling thread %d\n", code);
+            return NULL;
+        }
+        code = joystick_read_x(&stick_x);
+        if(code) {
+            fprintf(stderr, "Failed to read joystick x in sampling thread %d\n", code);
             return NULL;
         }
 
         long curr_time = time_ms();
 
-        // determine if in_up_motion
-        if(in_up_motion && stick_y < JOYSTICK_UP_TRIGGER - JOYSTICK_UP_HYSTERESIS) {
-            in_up_motion = false;
-        } else if(!in_up_motion && stick_y >= JOYSTICK_UP_TRIGGER) {
-            in_up_motion = true;
-            on_up_listener();
-            last_up_trigger = curr_time;
-        }
 
-        // determine if in_down_motion
-        if(in_down_motion && stick_y > JOYSTICK_DOWN_TRIGGER - JOYSTICK_DOWN_HYSTERESIS) {
-            in_down_motion = false;
-        } else if(!in_down_motion && stick_y <= JOYSTICK_DOWN_TRIGGER) {
-            in_down_motion = true;
-            on_down_listener();
-            last_down_trigger = curr_time;
-        }
+        run_state_machine_l(&in_up_motion, &last_up_trigger, stick_x, JOYSTICK_UP_TRIGGER, JOYSTICK_UP_HYSTERESIS, curr_time, on_up_listener);
+
+        run_state_machine_g(&in_down_motion, &last_down_trigger, stick_x, JOYSTICK_DOWN_TRIGGER, JOYSTICK_DOWN_HYSTERESIS, curr_time, on_down_listener);
+
+        run_state_machine_g(&in_right_motion, &last_right_trigger, stick_y, JOYSTICK_RIGHT_TRIGGER, JOYSTICK_RIGHT_HYSTERESIS, curr_time, on_right_listener);
+
+        run_state_machine_l(&in_left_motion, &last_left_trigger, stick_y, JOYSTICK_LEFT_TRIGGER, JOYSTICK_LEFT_HYSTERESIS, curr_time, on_left_listener);
+
 
         // repeat listeners if held
         if(in_up_motion && curr_time - last_up_trigger > HOLD_REPEAT_TIME) {
@@ -114,6 +145,16 @@ static void* do_sampling(void* args __attribute__((unused)))
         if(in_down_motion && curr_time - last_down_trigger > HOLD_REPEAT_TIME) {
             on_down_listener();
             last_down_trigger = curr_time;
+        }
+
+        if(in_right_motion && curr_time - last_right_trigger > HOLD_REPEAT_TIME) {
+            on_right_listener();
+            last_right_trigger = curr_time;
+        }
+
+        if(in_left_motion && curr_time - last_left_trigger > HOLD_REPEAT_TIME) {
+            on_left_listener();
+            last_left_trigger = curr_time;
         }
 
         sleep_ms(SAMPLE_SLEEP_TIME);
@@ -196,6 +237,7 @@ void joystick_set_on_press_listener(void (*on_press)())
         on_press_listener = on_press;
     }
 }
+
 void joystick_set_on_up_listener(void (*on_up)())
 {
     assert(initalized);
@@ -205,6 +247,7 @@ void joystick_set_on_up_listener(void (*on_up)())
         on_up_listener = on_up;
     }
 }
+
 void joystick_set_on_down_listener(void (*on_down)())
 {
     assert(initalized);
@@ -212,6 +255,26 @@ void joystick_set_on_down_listener(void (*on_down)())
         on_down_listener = do_nothing;
     } else {
         on_down_listener = on_down;
+    }
+}
+
+void joystick_set_on_left_listener(void (*on_left)())
+{
+    assert(initalized);
+    if (on_left == NULL) {
+        on_left_listener = do_nothing;
+    } else {
+        on_left_listener = on_left;
+    }
+}
+
+void joystick_set_on_right_listener(void (*on_right)())
+{
+    assert(initalized);
+    if (on_right == NULL) {
+        on_right_listener = do_nothing;
+    } else {
+        on_right_listener = on_right;
     }
 }
 
@@ -326,6 +389,8 @@ void joystick_cleanup(void)
 
     on_up_listener = do_nothing;
     on_down_listener = do_nothing;
+    on_right_listener = do_nothing;
+    on_left_listener = do_nothing;
     on_press_listener = do_nothing;
 
     initalized = false;

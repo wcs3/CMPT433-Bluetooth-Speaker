@@ -4,7 +4,10 @@
 #include "hal/light_sensor.h"
 #include "hal/led_pwm.h"
 #include "hal/draw_stuff.h"
+#include "hal/joystick.h"
 #include "hal/period_timer.h"
+#include "hal/lg_gpio_samples_func.h"
+#include "ui/load_image_assets.h"
 #include <stdio.h>
 #include <pthread.h>
 #include <stdbool.h>
@@ -17,11 +20,22 @@ static bool num_confirms_0 = false;
 int init_start(int num_confirms)
 {
     int code;
-    Period_init();
 
-    code = light_sensor_init();
+    code = lg_gpio_samples_func_init();
     if(code) {
-        fprintf(stderr, "failed to init light sensor %d\n", code);
+        fprintf(stderr, "init: failed to init lg_gpio_samples_func %d\n", code);
+        return 0;
+    }
+
+    code = load_image_assets_init();
+    if(code) {
+        fprintf(stderr, "init: failed to load image assets %d\n", code);
+        return 1;
+    }
+
+    code = joystick_init();
+    if(code) {
+        fprintf(stderr, "failed to init stick %d\n", code);
         return 2;
     }
 
@@ -31,11 +45,6 @@ int init_start(int num_confirms)
         return 3;
     }
 
-    code = led_pwm_init();
-    if(code) {
-        fprintf(stderr, "failed to init pwm led %d\n", code);
-        return 4;
-    }
 
     draw_stuff_init();
     if(num_confirms > 0) {
@@ -84,14 +93,18 @@ void init_end(void)
     }
     
     draw_stuff_cleanup();
-    light_sensor_cleanup();
+
     rotary_encoder_cleanup();
-    led_pwm_cleanup();
-    Period_cleanup();
     if(!num_confirms_0) {
         code = pthread_barrier_destroy(&barrier);
         if(code) {
             fprintf(stderr, "failed to destroy barrier %d\n", code);
         }
     }
+
+    joystick_cleanup();
+
+    load_image_assets_cleanup();
+
+    lg_gpio_samples_func_cleanup();
 }
