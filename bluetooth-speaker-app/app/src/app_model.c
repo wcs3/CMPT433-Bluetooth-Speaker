@@ -16,10 +16,6 @@ void on_position_changed(const void *changed_val, void *user_data)
     (void)user_data;
 
     position = *(const uint32_t *)changed_val;
-    uint32_t pos_min = (position / 1000) / 60;
-    uint32_t pos_sec = (position / 1000) % 60;
-    uint32_t pos_ms = (position / 100) % 10;
-    g_print("\nposition changed callback: %u:%02u.%u\n\n", pos_min, pos_sec, pos_ms);
 
     position_changed_at = time_ms();
 }
@@ -182,18 +178,21 @@ int app_model_repeat()
     return 0;
 }
 
-void app_model_increase_volume(){
+void app_model_increase_volume()
+{
     volume += 5;
-    if (volume > 127){
+    if (volume > 127)
+    {
         volume = 127;
     }
     bt_player_set_property(BT_PLAYER_PROP_VOLUME, &volume);
 }
 
-
-void app_model_decrease_volume(){
+void app_model_decrease_volume()
+{
     volume -= 5;
-    if (volume < 0){
+    if (volume < 0)
+    {
         volume = 0;
     }
     bt_player_set_property(BT_PLAYER_PROP_VOLUME, &volume);
