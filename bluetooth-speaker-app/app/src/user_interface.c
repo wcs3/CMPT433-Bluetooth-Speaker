@@ -96,6 +96,7 @@ void* run_ui(void* arg __attribute__((unused)))
     free(album_str_buf);
     free(track_str_buf);
     free(playback_str_buf);
+    free(artist_str_buf);
     image_loader_image_free(&screen);
 
     init_signal_done();

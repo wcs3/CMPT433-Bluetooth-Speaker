@@ -18,7 +18,6 @@
 
 
 #include "app/init.h"
-#include "app/server.h"
 #include "app/user_interface.h"
 
 static const int NUM_APP_THREADS = 1;
@@ -44,7 +43,6 @@ int main()
     }
 
     // functions that start other application threads
-    // server_init();
     user_interface_init();
 
     // Microphone test logic
@@ -64,7 +62,6 @@ int main()
 
     init_end();
 
-    // server_cleanup();
     user_interface_cleanup();
 
     return 0;
