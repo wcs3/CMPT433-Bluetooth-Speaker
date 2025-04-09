@@ -224,32 +224,14 @@ void bt_player_send_command_async(bt_player_cmd_e command,
 bool bt_player_get_property(bt_player_prop_e property, void *retval)
 {
     prop_entry_t *entry;
-    GVariant *val;
     bool ret;
     bt_player_track_info_t *track_ret;
 
+    ret = true;
+
     entry = &prop_entries[property];
 
-    pthread_mutex_lock(&data.proxy_mtx);
-    if (!*entry->proxy)
-    {
-        g_printerr("Proxy for property '%s' is unavailable\n",
-                   entry->prop_name);
-        ret = false;
-    }
-    else if (!(val = g_dbus_proxy_get_cached_property(*entry->proxy, entry->prop_name)))
-    {
-        g_printerr("Property '%s' is unavailable\n", entry->prop_name);
-        ret = false;
-    }
-    pthread_mutex_unlock(&data.proxy_mtx);
-
-    if (!ret)
-        return ret;
-
     pthread_mutex_lock(&entry->mtx);
-    entry->update_val_fn(val);
-    g_variant_unref(val);
 
     switch (property)
     {
