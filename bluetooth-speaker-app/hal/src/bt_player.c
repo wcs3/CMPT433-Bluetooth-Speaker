@@ -509,9 +509,9 @@ static bool prop_update_repeat(GVariant *val)
     bt_player_repeat_e new_repeat = BT_PLAYER_REPEAT_OFF;
 
     if (g_str_equal(repeat_str, "singletrack"))
-        props.repeat = BT_PLAYER_REPEAT_SINGLE_TRACK;
+        new_repeat = BT_PLAYER_REPEAT_SINGLE_TRACK;
     else if (g_str_equal(repeat_str, "alltracks"))
-        props.repeat = BT_PLAYER_REPEAT_ALL_TRACKS;
+        new_repeat = BT_PLAYER_REPEAT_ALL_TRACKS;
 
     if (new_repeat == props.repeat)
         return false;
