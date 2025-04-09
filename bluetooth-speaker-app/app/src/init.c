@@ -7,6 +7,8 @@
 #include "hal/joystick.h"
 #include "hal/period_timer.h"
 #include "hal/lg_gpio_samples_func.h"
+#include "hal/audio_capture.h"
+#include "hal/microphone.h"
 #include "ui/load_image_assets.h"
 #include "hal/bt_agent.h"
 #include "hal/bt_dbus.h"
@@ -78,6 +80,7 @@ int init_start(int num_confirms)
 
 
     draw_stuff_init();
+
     if(num_confirms > 0) {
         code = pthread_barrier_init(&barrier, NULL, num_confirms + 1);
         if(code) {
@@ -102,7 +105,8 @@ int init_start(int num_confirms)
     bt_player_set_property_changed_cb(BT_PLAYER_PROP_TRACK, on_track_change, NULL);
     bt_player_set_property_changed_cb(BT_PLAYER_PROP_PLAYBACK_POSITION, on_position_change, NULL);
 
-    // <==
+    audio_capture_init();
+    microphone_init();
     
     return 0;
 }
@@ -139,7 +143,6 @@ void init_end(void)
     }
 
     bt_agent_cleanup();
-    
     draw_stuff_cleanup();
 
     rotary_encoder_cleanup();
@@ -151,8 +154,8 @@ void init_end(void)
     }
 
     joystick_cleanup();
-
+    audio_capture_cleanup();
+    microphone_cleanup();
     load_image_assets_cleanup();
-
     lg_gpio_samples_func_cleanup();
 }

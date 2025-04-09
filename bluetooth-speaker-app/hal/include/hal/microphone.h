@@ -34,7 +34,8 @@ enum keyword {
     NEXT,
     PREVIOUS,
     VOLUME_UP,
-    VOLUME_DOWN
+    VOLUME_DOWN,
+    PLAY
 };
 
 void microphone_init(void);
@@ -42,6 +43,7 @@ void microphone_enable_audio_listening(void);
 void microphone_disable_audio_listening(void);
 const char* microphone_get_audio_input(void);
 enum keyword microphone_get_keyword_from_audio_input(void);
+void microphone_reset_audio_input(void);
 void microphone_cleanup(void);
 
 #endif // _MICROPHONE_H_
