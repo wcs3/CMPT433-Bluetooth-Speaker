@@ -16,9 +16,7 @@
 #include <unistd.h>
 #include <string.h>
 
-
 static pthread_t ui_thread;
-
 
 // // max_size is the max number of characters you want displayed
 // static void trim_string(char* src, char* dest, int max_size)
@@ -108,47 +106,61 @@ void listen_prev()
 {
     printf("previous\n");
     int code = app_model_previous();
-    if(code) {
+    if (code)
+    {
         fprintf(stderr, "user_interface: app_model_previous failed %d\n", code);
     }
 }
-
 
 void listen_next()
 {
     printf("next\n");
     int code = app_model_next();
-    if(code) {
+    if (code)
+    {
         fprintf(stderr, "user_interface: app_model_next failed %d\n", code);
     }
 }
 
-
-void listen_play()
+void listen_pause_play()
 {
-    printf("play\n");
-    int code = app_model_play();
-    if(code) {
-        fprintf(stderr, "user_interface: app_model_play failed %d\n", code);
+    printf("toggle pause/play\n");
+    int code = app_model_toggle_pause_play();
+    if (code)
+    {
+        fprintf(stderr, "user_interface: app_model_toggle_pause_play failed %d\n", code);
     }
 }
 
-
-void listen_pause()
+void listen_shuffle()
 {
-    printf("pause\n");
-    int code = app_model_pause();
-    if(code) {
-        fprintf(stderr, "user_interface: app_model_pause failed %d\n", code);
+    printf("cycle shuffle mode\n");
+    int code = app_model_toggle_shuffle();
+    if (code)
+{
+        fprintf(stderr, "user_interface: app_model_toggle_shuffle failed %d\n", code);
     }
 }
 
+void listen_repeat()
+{
+    printf("cycle repeat mode\n");
+    int code = app_model_toggle_repeat();
+    if (code)
+    {
+        fprintf(stderr, "user_interface: app_model_toggle_repeat failed %d\n", code);
+    }
+}
 
-void on_encoder_turn(bool clockwise) {
-    if (clockwise) {
+void on_encoder_turn(bool clockwise)
+{
+    if (clockwise)
+    {
         app_model_increase_volume();
         // printf("Rotated Clockwise!\n");
-    } else {
+    }
+    else
+    {
         app_model_decrease_volume();
         // printf("Rotated Counter-Clockwise!\n");
     }
@@ -157,12 +169,14 @@ void on_encoder_turn(bool clockwise) {
 int user_interface_init()
 {
     rotary_encoder_set_turn_listener(on_encoder_turn);
-    joystick_set_on_up_listener(listen_play); //listen_play
-    joystick_set_on_down_listener(listen_pause); //listen_pause
-    joystick_set_on_left_listener(listen_prev); //listen_up
-    joystick_set_on_right_listener(listen_next); //listen_next
+    joystick_set_on_press_listener(listen_pause_play);
+    joystick_set_on_up_listener(listen_shuffle);  // listen_play
+    joystick_set_on_down_listener(listen_repeat); // listen_pause
+    joystick_set_on_left_listener(listen_prev);   // listen_up
+    joystick_set_on_right_listener(listen_next);  // listen_next
     int thread_code = pthread_create(&ui_thread, NULL, run_ui, NULL);
-    if(thread_code) {
+    if (thread_code)
+    {
         fprintf(stderr, "failed to create ui thread %d\n", thread_code);
         return 1;
     }
@@ -172,7 +186,8 @@ int user_interface_init()
 void user_interface_cleanup()
 {
     int thread_code = pthread_join(ui_thread, NULL);
-    if(thread_code) {
+    if (thread_code)
+    {
         fprintf(stderr, "failed to join ui thread %d\n", thread_code);
     }
 }
