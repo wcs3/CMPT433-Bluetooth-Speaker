@@ -15,5 +15,5 @@ target_link_libraries(hal PUBLIC lcd)
 # link libm because stb_image needs it
 target_link_libraries(hal PUBLIC m)
 # Support GPIO
-find_library(GPIOD_LIBRARY gpiod)       # UNSURE IF NEEDED
-target_link_libraries(hal LINK_PRIVATE gpiod) # May need to change to HAL lib.
+# find_library(GPIOD_LIBRARY gpiod)       # UNSURE IF NEEDED
+# target_link_libraries(hal LINK_PRIVATE gpiod) # May need to change to HAL lib.
