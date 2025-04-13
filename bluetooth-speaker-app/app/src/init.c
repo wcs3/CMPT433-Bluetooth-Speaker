@@ -2,11 +2,8 @@
 #include "app/init.h"
 #include "app/app_model.h"
 #include "hal/rotary_encoder.h"
-#include "hal/light_sensor.h"
-#include "hal/led_pwm.h"
 #include "hal/draw_stuff.h"
 #include "hal/joystick.h"
-#include "hal/period_timer.h"
 #include "hal/lg_gpio_samples_func.h"
 #include "hal/audio_capture.h"
 #include "hal/microphone.h"
@@ -102,8 +99,9 @@ int init_start(int num_confirms)
 
     app_model_init();
 
-    audio_capture_init();
-    microphone_init();
+    // ENABLE FOR MICROPHONE
+    // audio_capture_init();
+    // microphone_init();
     
     return 0;
 }
@@ -157,8 +155,11 @@ void init_end(void)
     }
 
     joystick_cleanup();
-    audio_capture_cleanup();
-    microphone_cleanup();
+
+    // ENABLE FOR MICROPHONE
+    // audio_capture_cleanup();
+    // microphone_cleanup();
+    
     load_image_assets_cleanup();
     lg_gpio_samples_func_cleanup();
 }

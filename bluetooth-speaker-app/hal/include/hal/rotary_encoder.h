@@ -10,6 +10,7 @@ int rotary_encoder_init(void);
 // bool argument is true for clockwise, false for counter clockwise
 void rotary_encoder_set_turn_listener(void (* on_turn)(bool));
 
+// Set listener to run once when rotary encoder is pressed.
 void rotary_encoder_set_press_listener(void (* on_press)());
 
 void rotary_encoder_cleanup(void);

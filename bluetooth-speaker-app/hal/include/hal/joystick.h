@@ -28,8 +28,10 @@ void joystick_set_on_up_listener(void (*on_up)());
 // triggers when a joystick is moved down, triggers repeatedly at regular intervals when the joystick is held in the down position
 void joystick_set_on_down_listener(void (*on_down)());
 
+// triggers when a joystick is moved left, triggers repeatedly at regular intervals when the joystick is held in the left position
 void joystick_set_on_left_listener(void (*on_left)());
 
+// triggers when a joystick is moved right, triggers repeatedly at regular intervals when the joystick is held in the right position
 void joystick_set_on_right_listener(void (*on_right)());
 
 void joystick_cleanup(void);

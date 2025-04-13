@@ -31,7 +31,6 @@ int main()
     draw_stuff_init();
     // draw_stuff_update_screen("hello world\nhello world\n");
     draw_stuff_screen(screen);
-    // olivec_test();
     sleep(10);
     draw_stuff_cleanup();
 

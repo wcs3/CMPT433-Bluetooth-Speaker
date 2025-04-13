@@ -13,7 +13,7 @@
 
 #include "lgpio.h"
 #include "hal/time_util.h"
-#include "hal/i2c-init.h"
+#include "hal/i2c_init.h"
 #include "hal/joystick.h"
 #include "hal/button_state_machine.h"
 #include "hal/lg_gpio_samples_func.h"

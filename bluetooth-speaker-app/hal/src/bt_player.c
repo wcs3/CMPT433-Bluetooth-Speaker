@@ -1,8 +1,18 @@
+#include <string.h>
+#include <stdio.h>
+
 #include "hal/bt_player.h"
 #include "hal/bt_dbus.h"
 
 #define BLUEZ_MEDIA_PLAYER_INTERFACE "org.bluez.MediaPlayer1"
 #define BLUEZ_MEDIA_TRANSPORT_INTERFACE "org.bluez.MediaTransport1"
+
+#define MAX_STRING_LENGTH 256
+
+char current_artist[MAX_STRING_LENGTH];
+char current_title[MAX_STRING_LENGTH];
+char current_album[MAX_STRING_LENGTH];
+char current_track_status[MAX_STRING_LENGTH];
 
 typedef struct
 {
@@ -640,16 +650,6 @@ void bt_player_set_play_sync(GDBusProxy *player_proxy)
         g_printerr("\nSuccess play\n");
     }
 }
-
-#include <string.h>
-#include <stdio.h>
-
-#define MAX_STRING_LENGTH 256
-
-char current_artist[MAX_STRING_LENGTH];
-char current_title[MAX_STRING_LENGTH];
-char current_album[MAX_STRING_LENGTH];
-char current_track_status[MAX_STRING_LENGTH];
 
 void print_track_data(GDBusProxy *player_proxy)
 {
