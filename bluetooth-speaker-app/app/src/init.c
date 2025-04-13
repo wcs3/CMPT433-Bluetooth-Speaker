@@ -99,8 +99,9 @@ int init_start(int num_confirms)
 
     app_model_init();
 
-    audio_capture_init();
-    microphone_init();
+    // ENABLE FOR MICROPHONE
+    // audio_capture_init();
+    // microphone_init();
     
     return 0;
 }
@@ -154,8 +155,11 @@ void init_end(void)
     }
 
     joystick_cleanup();
-    audio_capture_cleanup();
-    microphone_cleanup();
+
+    // ENABLE FOR MICROPHONE
+    // audio_capture_cleanup();
+    // microphone_cleanup();
+    
     load_image_assets_cleanup();
     lg_gpio_samples_func_cleanup();
 }
